@@ -8,8 +8,10 @@ this file is for working on it.
 ## Layout
 
 - `extension/manifest.json` – MV3, content script on `https://hsh.gomus.de/guide/*`, `storage` permission only.
-- `extension/content/content.js` – everything that runs on the page: grid model, block view, writes, panel UI.
-- `extension/popup/` – settings (block length, preset times, working-hours window).
+- `extension/content/content.js` – everything that runs on the page: grid model, block view, writes, panel UI, month invoice.
+- `extension/popup/` – settings (block length, preset times, working-hours window, invoice numbering).
+- `extension/background.js` – service worker; its only job is opening the invoice tab (`chrome.tabs.create`).
+- `extension/invoice/` – the printable invoice page (`chrome-extension://` URL, data handed over via `chrome.storage.local`).
 - `tools/dev-inject.js` – loads the content script into an already-open page (see Verification).
 - `tools/make_icons.py` – regenerates `extension/icons/*.png`.
 
@@ -36,9 +38,14 @@ Faster iteration without reloading the extension: run `tools/dev-inject.js` thro
 MCP tool `browser_run_code_unsafe`. It stubs `chrome.storage`, then injects the CSS and script.
 Note it cannot run twice in one page (top-level `const` redeclaration), so reload first.
 
+`tools/dev-inject.js` also stubs `chrome.storage.local` and `chrome.runtime.sendMessage`, capturing
+writes on `window.__tahLocal` / `window.__tahSync`, so the whole invoice flow can be exercised on
+the live calendar page without installing anything (it only issues GETs).
+
 Loading the unpacked extension into a Playwright-launched Chrome does not work – Chrome refuses
-`--load-extension` under automation. Test the popup by serving `extension/popup/` over HTTP with a
-stubbed `chrome.storage`.
+`--load-extension` under automation. Test the popup and `invoice/invoice.html` by serving the repo
+root over HTTP with a stubbed `chrome.storage` (`addInitScript`). For print layout use
+`browser_emulate_media { media: "print" }`.
 
 ## How the site works (learned the hard way)
 
@@ -72,6 +79,40 @@ day – restricted to the working-hours range (`dayCells`) – and clears it aga
 button is already active. The original table stays in the DOM (just `display: none`), so the
 grid model, writes, undo and Shift/Alt selection all keep working unchanged – any write must call
 `refreshBlockView()` afterwards, and `applyView()` is the single place that swaps the two tables.
+
+## Invoices
+
+The calendar page (`/guide/calendar?start_at=YYYY-MM-01`) gets a **Rechnung**
+button in the month header; the panel is prefilled from the `legend` ("November
+2026"), not from the URL, because the header is re-rendered by the site's own
+month links. Month navigation is a full page load, so re-mounting is enough.
+
+Data comes from the bookings list, not the calendar grid:
+
+- `GET /guide/bookings?start_at=<month>-01&end_at=<next month>-01&per_page=200&status[]=20&guide_status_types[]=11,15,20,500`
+  – `status[]=20` is Gebucht, the guide statuses include Unbestätigt, because
+  past shifts count even when the guide never confirmed them. 200 covers a
+  month (the site defaults to 25 per page).
+- Each `tr.booking-list-item` carries `id="booking<id>"`; the date group sits in
+  the preceding `tr.sticky-top` ("1. November 2026"), the time and the duration
+  (105 minutes) in the "Datum: … Uhr / Dauer: …" cell.
+- The price is **not** in the list. It is the `td.price` of the "Abrechnung" box
+  on `/guide/bookings/<id>` (Honorar, e.g. `97,50 €`), one detail request per
+  booking. The customer is the `dd` of the "Kundendaten" box; it is empty for
+  public tours, so fall back to the `Gruppenbezeichnung` in `.booking-comment`
+  (that block also holds other lines) and then to the tour title.
+- The panel previews the month (count, sum, number) as soon as it opens and
+  whenever the month changes: `previewInvoice()` loads the rows and shows
+  `peekInvoiceNumber()`, which must not claim a number. Only **Rechnung
+  erstellen** calls `assignInvoiceNumber()` and writes the number map; it reuses
+  the rows the preview already loaded, so the invoice matches what was on screen.
+- Numbers live in `chrome.storage.sync.invoiceNumbers` (`{ '2026-11': 'RE-2026-100' }`),
+  assigned from `invoiceStart` + `invoicePrefix` and reused for the same month.
+  Only trailing digits count when finding the highest number, since prefixes
+  contain digits too.
+- The payload is written to `chrome.storage.local.invoice`; `background.js`
+  opens `invoice/invoice.html`, which only reads it. It cannot be opened from
+  the page directly (`chrome-extension://` URLs are blocked for web content).
 
 ## Data gotchas
 

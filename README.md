@@ -56,7 +56,28 @@ Plain clicks behave exactly like before: a single 5-minute cell toggles
 through `nicht gesetzt → verfügbar → nicht verfügbar`.
 
 The toolbar icon opens the settings: block length, the list of quick start
-times, whether Alt+Klick is active, and the visible working-hours range.
+times, whether Alt+Klick is active, the visible working-hours range, and the
+first invoice number.
+
+## Monatsrechnung
+
+On `/guide/calendar` the month header has a **Rechnung** button. Pick a month
+(prefilled with the month on screen) and the panel shows a live preview — number
+of tours, sum, and the invoice number that month would get. **Rechnung
+erstellen** then opens a printable invoice in a new tab: one row per booking
+with customer, date, time, duration, booking number and the Honorar stored on
+the booking, plus the sum. **Drucken / als PDF speichern** opens the browser's
+print dialog.
+
+Past shifts are included even when the guide never confirmed them — they are
+still valid work. Cancelled bookings are not. If a booking has no customer
+(public tours), the Gruppenbezeichnung from the booking comment is used, and
+failing that the tour title.
+
+Invoice numbers continue from **Rechnungsnummer ab** in the settings, with an
+optional prefix (e.g. `RE-2026-`). Each month keeps the number it was first
+given, so opening a month again does not burn a number, and the number can be
+edited directly on the invoice.
 
 ## How it works
 

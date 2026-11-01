@@ -41,6 +41,17 @@
       </label>
     </div>
 
+    <label class="field">
+      <span>Rechnungsnummer ab</span>
+      <input id="invoiceStart" type="number" min="1" step="1" />
+    </label>
+
+    <label class="field">
+      <span>Rechnungsnummer-Präfix</span>
+      <input id="invoicePrefix" type="text" placeholder="z. B. 2026-" />
+    </label>
+    <p class="hint">Monatsrechnungen im Kalender (<strong>Rechnung</strong>) nummerieren fortlaufend ab dieser Zahl. Jeder Monat behält seine Nummer; auf der Rechnung selbst ist sie änderbar. Dreistellig, z. B. <code>2026-007</code>.</p>
+
     <div class="actions">
       <button id="save">Speichern</button>
       <button id="reset" class="secondary">Zurücksetzen</button>

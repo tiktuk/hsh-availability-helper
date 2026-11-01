@@ -349,3 +349,113 @@
   cursor: pointer;
   font-size: 11px;
 }
+
+/* Invoice trigger + month picker in the calendar header. */
+.tah-invoice-trigger {
+  color: #1e4b8c;
+  font-weight: 600;
+}
+
+#tah-invoice-panel {
+  display: none;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
+  padding: 8px 10px;
+  border: 1px solid #e7eaec;
+  border-left: 4px solid #1e4b8c;
+  border-radius: 3px;
+  background: #fbfcfd;
+  font-size: 12px;
+  color: #333;
+}
+
+#tah-invoice-panel.tah-open {
+  display: flex;
+}
+
+#tah-invoice-panel label {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin: 0;
+  font-weight: normal;
+  color: #555;
+}
+
+#tah-invoice-panel .tah-input {
+  height: 26px;
+  padding: 2px 6px;
+  border: 1px solid #ccc;
+  border-radius: 3px;
+  font-size: 12px;
+}
+
+#tah-invoice-panel .tah-btn {
+  padding: 4px 10px;
+  border: 1px solid #3d9140;
+  border-radius: 3px;
+  background: #4caf50;
+  color: #fff;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+#tah-invoice-panel .tah-btn:hover:not(:disabled) {
+  filter: brightness(1.08);
+}
+
+#tah-invoice-panel .tah-btn:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+#tah-invoice-panel .tah-invoice-status {
+  color: #777;
+  font-size: 11px;
+}
+
+/* Live preview of the month: count, sum, number. */
+#tah-invoice-panel .tah-invoice-preview {
+  display: flex;
+  flex-basis: 100%;
+  flex-wrap: wrap;
+  gap: 20px;
+  padding: 6px 10px;
+  border: 1px solid #e7eaec;
+  border-radius: 3px;
+  background: #fff;
+}
+
+#tah-invoice-panel .tah-invoice-preview[hidden] {
+  display: none;
+}
+
+#tah-invoice-panel .tah-invoice-stat {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+}
+
+#tah-invoice-panel .tah-invoice-stat strong {
+  font-size: 14px;
+  color: #1e4b8c;
+}
+
+#tah-invoice-panel .tah-invoice-stat small {
+  color: #999;
+  font-size: 10px;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+
+#tah-invoice-panel .tah-invoice-status.tah-error {
+  color: #c0392b;
+}
+
+#tah-invoice-panel .tah-hint {
+  flex-basis: 100%;
+  color: #999;
+  font-size: 11px;
+}

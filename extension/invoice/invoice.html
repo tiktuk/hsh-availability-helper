@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="de">
+  <head>
+    <meta charset="utf-8" />
+    <link rel="stylesheet" href="invoice.css" />
+    <title>Rechnung</title>
+  </head>
+  <body>
+    <main class="sheet" id="sheet">
+      <header class="head">
+        <div class="head-title">
+          <h1>Rechnung</h1>
+          <p class="period" id="period"></p>
+        </div>
+        <dl class="meta">
+          <dt>Rechnungsnummer</dt>
+          <dd><input id="number" class="number" type="text" spellcheck="false" aria-label="Rechnungsnummer" /></dd>
+          <dt>Rechnungsdatum</dt>
+          <dd id="issued"></dd>
+          <dt>Rechnungssteller</dt>
+          <dd id="guide"></dd>
+        </dl>
+      </header>
+
+      <table class="rows">
+        <thead>
+          <tr>
+            <th class="col-customer">Kunde</th>
+            <th class="col-date">Datum</th>
+            <th class="col-time">Zeit</th>
+            <th class="col-duration">Dauer</th>
+            <th class="col-id">Buchung</th>
+            <th class="col-amount">Betrag</th>
+          </tr>
+        </thead>
+        <tbody id="rows"></tbody>
+        <tfoot>
+          <tr>
+            <th colspan="5">Summe</th>
+            <th class="col-amount" id="total"></th>
+          </tr>
+        </tfoot>
+      </table>
+
+      <p class="note" id="note">Alle gebuchten Einsätze des Monats, einschließlich vergangener und noch nicht bestätigter Termine.</p>
+
+      <p class="empty" id="empty" hidden>
+        Keine Rechnungsdaten. Öffne den Kalender unter <code>hsh.gomus.de/guide/calendar</code> und klicke auf
+        <strong>Rechnung</strong>, um eine Monatsrechnung zu erstellen.
+      </p>
+
+      <div class="actions">
+        <button id="print" type="button">Drucken / als PDF speichern</button>
+      </div>
+    </main>
+    <script src="invoice.js"></script>
+  </body>
+</html>

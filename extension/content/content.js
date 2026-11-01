@@ -13,6 +13,8 @@ const DEFAULTS = {
   dayFrom: '09:55',
   dayTo: '18:30',
   view: 'blocks',
+  invoiceStart: 1,
+  invoicePrefix: '',
 };
 
 const state = {
@@ -22,6 +24,8 @@ const state = {
   undo: null,
   undoTimeout: null,
   days: [], // booleans per visible column
+  invoicePreview: null,
+  invoiceToken: 0,
 };
 
 /* ---------- helpers ---------- */
@@ -709,6 +713,8 @@ async function loadSettings() {
     dayFrom: /^\d{1,2}:\d{2}$/.test(stored.dayFrom) ? stored.dayFrom : DEFAULTS.dayFrom,
     dayTo: /^\d{1,2}:\d{2}$/.test(stored.dayTo) ? stored.dayTo : DEFAULTS.dayTo,
     view: stored.view === 'slots' ? 'slots' : 'blocks',
+    invoiceStart: Math.max(1, Number(stored.invoiceStart) || DEFAULTS.invoiceStart),
+    invoicePrefix: typeof stored.invoicePrefix === 'string' ? stored.invoicePrefix : DEFAULTS.invoicePrefix,
   };
 }
 
@@ -729,11 +735,329 @@ chrome.storage.onChanged.addListener((changes, area) => {
   });
 });
 
+/* ---------- invoice ---------- */
+
+const BOOKINGS_URL = '/guide/bookings';
+const MONTH_NAMES = ['Januar', 'Februar', 'März', 'April', 'Mai', 'Juni', 'Juli', 'August', 'September', 'Oktober', 'November', 'Dezember'];
+
+function monthKey(date) {
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+}
+
+function addMonths(month, delta) {
+  const [y, m] = month.split('-').map(Number);
+  return monthKey(new Date(y, m - 1 + delta, 1));
+}
+
+function monthLabel(month) {
+  const [y, m] = month.split('-').map(Number);
+  return `${MONTH_NAMES[m - 1]} ${y}`;
+}
+
+function parseGermanDate(text) {
+  const m = /(\d{1,2})\.\s*([A-Za-zÄÖÜäöüß]+)\.?\s*(\d{4})/.exec(text || '');
+  const month = m ? MONTH_NAMES.indexOf(m[2]) : -1;
+  return month < 0 ? null : { day: Number(m[1]), month, year: Number(m[3]) };
+}
+
+function parseMonthLabel(text) {
+  const m = /([A-Za-zÄÖÜäöüß]+)\s+(\d{4})/.exec(text || '');
+  const month = m ? MONTH_NAMES.indexOf(m[1]) : -1;
+  return month < 0 ? null : `${m[2]}-${String(month + 1).padStart(2, '0')}`;
+}
+
+// The site prints German prices ("97,50 €"); a comma means the dot is a thousands separator.
+function parseMoney(text) {
+  const raw = String(text).replace(/[^\d.,-]/g, '');
+  if (!raw) return 0;
+  return Number(raw.includes(',') ? raw.replace(/\./g, '').replace(',', '.') : raw) || 0;
+}
+
+function guideName() {
+  const node = document.querySelector('.profile-element .font-bold, .profile-element strong');
+  return node ? node.textContent.trim() : '';
+}
+
+function currencySymbol() {
+  return document.body.dataset.currencysymbol || '€';
+}
+
+function calendarBox() {
+  return [...document.querySelectorAll('.ibox')].find((box) => /Buchungskalender/.test(box.querySelector('.ibox-title')?.textContent || ''));
+}
+
+function calendarMonth() {
+  const legend = calendarBox()?.querySelector('legend');
+  const fromLegend = parseMonthLabel(legend?.textContent);
+  if (fromLegend) return fromLegend;
+  const startAt = new URLSearchParams(location.search).get('start_at');
+  return startAt && /^\d{4}-\d{2}/.test(startAt) ? startAt.slice(0, 7) : monthKey(new Date());
+}
+
+function parseBookingRow(tr, group, month) {
+  const cells = [...tr.children];
+  const info = cells.find((td) => /Datum:/.test(td.textContent));
+  if (!info) return null;
+  const text = info.textContent.replace(/\s+/g, ' ');
+  const when = /Datum:\s*(\d{1,2})\.\s*([A-Za-zÄÖÜäöüß]+),?\s*(\d{1,2}):(\d{2})\s*Uhr/.exec(text);
+  if (!when) return null;
+  const monthIndex = MONTH_NAMES.indexOf(when[2]);
+  const id = (tr.id.match(/\d+/) || [])[0];
+  if (!id || monthIndex < 0) return null;
+  const duration = /Dauer:\s*(\d+)\s*Minuten/.exec(text);
+  const year = group ? group.year : Number(month.slice(0, 4));
+  return {
+    id,
+    tour: (cells[2]?.querySelector('strong')?.textContent || '').trim(),
+    date: `${year}-${String(monthIndex + 1).padStart(2, '0')}-${String(Number(when[1])).padStart(2, '0')}`,
+    time: `${when[3].padStart(2, '0')}:${when[4]}`,
+    duration: duration ? Number(duration[1]) : null,
+    customer: '',
+    price: 0,
+  };
+}
+
+async function fetchMonthBookings(month) {
+  const query = new URLSearchParams({
+    start_at: `${month}-01`,
+    end_at: `${addMonths(month, 1)}-01`,
+    per_page: '200',
+  });
+  query.append('status[]', '20'); // Gebucht
+  // E-Mail wird versendet, Unbestätigt, Bestätigt, E-Mail-Versand fehlgeschlagen:
+  // past shifts belong on the invoice even when the guide never confirmed them.
+  for (const status of ['11', '15', '20', '500']) query.append('guide_status_types[]', status);
+
+  const res = await fetch(`${BOOKINGS_URL}?${query}`, { credentials: 'include' });
+  if (!res.ok) throw new Error(`Buchungsliste: HTTP ${res.status}`);
+  const doc = new DOMParser().parseFromString(await res.text(), 'text/html');
+
+  const rows = [];
+  let group = null;
+  for (const tr of doc.querySelectorAll('table tr')) {
+    if (tr.classList.contains('sticky-top')) {
+      group = parseGermanDate(tr.textContent);
+      continue;
+    }
+    if (!tr.classList.contains('booking-list-item')) continue;
+    const row = parseBookingRow(tr, group, month);
+    if (row) rows.push(row);
+  }
+  return rows;
+}
+
+async function enrichBooking(row) {
+  const res = await fetch(`${BOOKINGS_URL}/${row.id}`, { credentials: 'include' });
+  if (!res.ok) throw new Error(`Buchung ${row.id}: HTTP ${res.status}`);
+  const doc = new DOMParser().parseFromString(await res.text(), 'text/html');
+  const box = (name) => [...doc.querySelectorAll('.ibox')].find((node) => new RegExp(name).test(node.querySelector('.ibox-title')?.textContent || ''));
+  const kunde = box('Kundendaten');
+  const abrechnung = box('Abrechnung');
+  const hinweise = box('Hinweise');
+
+  const customer = (kunde?.querySelector('dd')?.textContent || '').replace(/\s+/g, ' ').trim();
+  // The comment block holds more than the group name ("Alternative language: …"),
+  // so keep only the Gruppenbezeichnung line.
+  const commentText = hinweise?.querySelector('.booking-comment')?.textContent || '';
+  const comment = (/Gruppenbezeichnung:\s*([^\n]+)/.exec(commentText) || [])[1]?.trim() || '';
+
+  row.price = abrechnung ? [...abrechnung.querySelectorAll('td.price')].reduce((sum, td) => sum + parseMoney(td.textContent), 0) : 0;
+  row.customer = customer || comment || row.tour || `Buchung ${row.id}`;
+  return row;
+}
+
+async function invoiceNumberState() {
+  const stored = await chrome.storage.sync.get({ invoiceNumbers: {}, invoiceStart: DEFAULTS.invoiceStart, invoicePrefix: DEFAULTS.invoicePrefix });
+  const numbers = stored.invoiceNumbers || {};
+  // Only the trailing digits count: prefixes may contain digits of their own ("RE-2026-100").
+  const trailing = (value) => Number((/(\d+)\s*$/.exec(String(value)) || [])[1]) || 0;
+  const highest = Object.values(numbers).reduce((max, value) => Math.max(max, trailing(value)), 0);
+  const next = `${stored.invoicePrefix || ''}${String(Math.max(Number(stored.invoiceStart) || 1, highest + 1)).padStart(3, '0')}`;
+  return { numbers, next };
+}
+
+// The preview shows the number the month would get, so it must not claim one.
+async function peekInvoiceNumber(month) {
+  const { numbers, next } = await invoiceNumberState();
+  return numbers[month] || next;
+}
+
+async function assignInvoiceNumber(month) {
+  const { numbers, next } = await invoiceNumberState();
+  if (numbers[month]) return numbers[month];
+  await chrome.storage.sync.set({ invoiceNumbers: { ...numbers, [month]: next } });
+  return next;
+}
+
+function formatMoney(value) {
+  return `${value.toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${currencySymbol()}`;
+}
+
+function openInvoicePage() {
+  return new Promise((resolve, reject) => {
+    try {
+      chrome.runtime.sendMessage({ type: 'tah-open-invoice' }, (reply) => {
+        const error = chrome.runtime.lastError;
+        if (error) reject(new Error(error.message));
+        else resolve(reply);
+      });
+    } catch (err) {
+      reject(err);
+    }
+  });
+}
+
+async function loadInvoiceRows(month) {
+  const rows = await fetchMonthBookings(month);
+  await pool(rows, CONCURRENCY, enrichBooking);
+  rows.sort((a, b) => `${a.date} ${a.time}`.localeCompare(`${b.date} ${b.time}`));
+  return rows;
+}
+
+async function previewInvoice(month) {
+  const token = ++state.invoiceToken;
+  state.invoicePreview = null;
+  renderInvoicePreview();
+  invoiceStatus('Lade Buchungen …');
+  try {
+    const rows = await loadInvoiceRows(month);
+    const number = await peekInvoiceNumber(month);
+    if (token !== state.invoiceToken) return;
+    state.invoicePreview = rows.length
+      ? { month, rows, total: rows.reduce((sum, row) => sum + row.price, 0), number }
+      : null;
+    invoiceStatus(rows.length ? '' : 'Keine Buchungen in diesem Monat.');
+    renderInvoicePreview();
+  } catch (err) {
+    if (token !== state.invoiceToken) return;
+    invoiceStatus(`Fehler: ${err.message}`, { error: true });
+  }
+}
+
+function renderInvoicePreview() {
+  const box = document.querySelector('#tah-invoice-preview');
+  if (!box) return;
+  const preview = state.invoicePreview;
+  box.hidden = !preview;
+  if (!preview) return;
+
+  const stat = (value, label) => {
+    const node = el('span', { class: 'tah-invoice-stat' });
+    node.append(el('strong', { text: value }), el('small', { text: label }));
+    return node;
+  };
+  box.replaceChildren(
+    stat(String(preview.rows.length), preview.rows.length === 1 ? 'Einsatz' : 'Einsätze'),
+    stat(formatMoney(preview.total), 'Summe'),
+    stat(preview.number, 'Rechnungsnummer')
+  );
+}
+
+async function createInvoice(month) {
+  // Reuse what the preview just loaded, so the invoice matches what was on screen.
+  const preview = state.invoicePreview?.month === month ? state.invoicePreview : null;
+  const rows = preview ? preview.rows : await loadInvoiceRows(month);
+  if (!rows.length) throw new Error(`${monthLabel(month)}: keine Buchungen gefunden.`);
+
+  const invoice = {
+    month,
+    monthLabel: monthLabel(month),
+    number: await assignInvoiceNumber(month),
+    guide: guideName(),
+    currency: currencySymbol(),
+    rows,
+    total: rows.reduce((sum, row) => sum + row.price, 0),
+    createdAt: Date.now(),
+  };
+  await chrome.storage.local.set({ invoice });
+  await openInvoicePage();
+  return invoice;
+}
+
+function invoiceStatus(text, { error = false } = {}) {
+  const node = document.querySelector('#tah-invoice-status');
+  if (!node) return;
+  node.textContent = text;
+  node.classList.toggle('tah-error', error);
+}
+
+function mountInvoice() {
+  if (document.querySelector('#tah-invoice-panel')) return;
+  const box = calendarBox();
+  const title = box?.querySelector('.ibox-title');
+  if (!title) return;
+
+  const group = el('div', { class: 'btn-group nobr' });
+  const trigger = el('button', { class: 'btn btn-default btn-xs tah-invoice-trigger', type: 'button', title: 'Monatsrechnung erstellen' });
+  trigger.append(el('i', { class: 'fa fa-fw fa-file-text-o' }), el('span', { class: 'hidden-xs', text: ' Rechnung' }));
+  group.append(trigger);
+  (title.querySelector('.pull-right') || title).append(group);
+
+  const panel = el('div', { id: 'tah-invoice-panel' });
+  const month = el('input', { id: 'tah-invoice-month', type: 'month', class: 'tah-input' });
+  const go = el('button', { id: 'tah-invoice-go', class: 'tah-btn', type: 'button', text: 'Rechnung erstellen' });
+  const label = el('label', {}, ['Monat', month]);
+  const previewBox = el('div', { id: 'tah-invoice-preview', class: 'tah-invoice-preview' });
+  previewBox.hidden = true;
+  panel.append(label, go, el('span', { id: 'tah-invoice-status', class: 'tah-invoice-status' }));
+  panel.append(previewBox);
+  panel.append(el('div', { class: 'tah-hint', text: 'Alle gebuchten Einsätze des Monats, auch vergangene und unbestätigte. Öffnet eine druckbare Rechnung.' }));
+  title.append(panel);
+
+  let timer = null;
+  const schedulePreview = (delay = 350) => {
+    clearTimeout(timer);
+    const value = month.value;
+    if (!/^\d{4}-\d{2}$/.test(value)) {
+      state.invoiceToken += 1;
+      state.invoicePreview = null;
+      renderInvoicePreview();
+      invoiceStatus('');
+      return;
+    }
+    timer = setTimeout(() => previewInvoice(value), delay);
+  };
+  month.addEventListener('input', () => schedulePreview());
+  month.addEventListener('change', () => schedulePreview());
+
+  trigger.addEventListener('click', () => {
+    const open = panel.classList.toggle('tah-open');
+    if (open) {
+      month.value = calendarMonth();
+      invoiceStatus('');
+      schedulePreview(0);
+    } else {
+      clearTimeout(timer);
+      state.invoiceToken += 1;
+    }
+  });
+
+  go.addEventListener('click', async () => {
+    const value = month.value;
+    if (!/^\d{4}-\d{2}$/.test(value)) {
+      invoiceStatus('Bitte einen Monat wählen.', { error: true });
+      return;
+    }
+    go.disabled = true;
+    if (state.invoicePreview?.month !== value) invoiceStatus('Lade Buchungen …');
+    try {
+      const invoice = await createInvoice(value);
+      invoiceStatus(`Rechnung ${invoice.number} geöffnet.`);
+    } catch (err) {
+      invoiceStatus(`Fehler: ${err.message}`, { error: true });
+    }
+    go.disabled = false;
+  });
+}
+
 /* ---------- boot ---------- */
 
 (async function boot() {
-  if (!gridTable()) return;
   await loadSettings();
-  mountPanel();
-  document.addEventListener('click', onGridClick, true);
+  if (gridTable()) {
+    mountPanel();
+    document.addEventListener('click', onGridClick, true);
+    return;
+  }
+  mountInvoice();
 })();
