@@ -10,9 +10,9 @@ const DEFAULTS = {
   senderStreet: '',
   senderCity: '',
   taxNumber: '',
-  recipientName: 'Stiftung Gedenkstätte Berlin-Höhenschönhausen',
-  recipientStreet: 'Genslerstraße 66',
-  recipientCity: '13055 Berlin',
+  recipientName: '',
+  recipientStreet: '',
+  recipientCity: '',
   bankName: '',
   iban: '',
   bic: '',
@@ -79,7 +79,9 @@ function renderLetter(invoice, settings, signature) {
   const sender = [settings.senderName || invoice.guide, settings.senderStreet, settings.senderCity].filter(Boolean);
   $('sender').textContent = sender.join('\n');
   $('sender').hidden = !sender.length;
-  $('warn').hidden = Boolean(settings.senderName);
+  // Nothing is prefilled, so an unconfigured invoice says what is missing instead
+  // of printing a letter without a sender or a recipient.
+  $('warn').hidden = Boolean(settings.senderName && settings.recipientName);
 
   const recipient = [settings.recipientName, settings.recipientStreet, settings.recipientCity].filter(Boolean);
   $('recipient').textContent = recipient.join('\n');

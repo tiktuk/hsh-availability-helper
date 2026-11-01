@@ -191,9 +191,9 @@ Everything in that letter comes from the settings page (popup → **Rechnung &
 Kalender …**): name and address, recipient, Steuernummer, bank details, all texts, and
 the signature image. Empty fields simply do not appear, so a letter without a
 Steuernummer or bank details still prints. The fields carry example text as
-placeholders — nothing is prefilled with real data, except the recipient, which
-defaults to the museum. The signature is shrunk to 800 px wide and kept in local
-storage only, so it is not synced between machines.
+placeholders only — nothing is prefilled with real data, so the first invoice
+tells you on screen which fields are still missing. The signature is shrunk to
+800 px wide and kept in local storage only, so it is not synced between machines.
 
 A month without bookings says so in the panel and keeps the button disabled —
 there is nothing to bill yet.
