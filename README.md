@@ -23,7 +23,10 @@ empty = nothing set, hatched with `6/18` = partially available, bookmark = a
 booking sits in the block, grey = in the past.
 
 Clicking a block cell marks the whole block available, clicking again clears
-it. **Ansicht → 5 Min** switches back to the site's original grid at any time.
+it. Each day column also has a **✓ / ✗** pair in the header that marks that
+whole day available or unavailable (over the working-hours range, 09:55–18:30
+by default); pressing the highlighted button again clears the day.
+**Ansicht → 5 Min** switches back to the site's original grid at any time.
 
 Above the grid sits a **Tour-Blöcke** panel:
 

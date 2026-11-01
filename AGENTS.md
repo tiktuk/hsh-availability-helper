@@ -67,7 +67,9 @@ stubbed `chrome.storage`.
 The default view replaces the site's table with `#tah-block-view`: one row per preset start time,
 one cell per day, each cell aggregating the 18 underlying five-minute cells (`summarize()` returns
 `available` / `unavailable` / `not_set` / `mixed` / `past`). Clicking a cell toggles the whole block
-between available and not set. The original table stays in the DOM (just `display: none`), so the
+between available and not set. The day headers carry a ✓/✗ pair (`dayHeadNode`) that sets the whole
+day – restricted to the working-hours range (`dayCells`) – and clears it again when the matching
+button is already active. The original table stays in the DOM (just `display: none`), so the
 grid model, writes, undo and Shift/Alt selection all keep working unchanged – any write must call
 `refreshBlockView()` afterwards, and `applyView()` is the single place that swaps the two tables.
 

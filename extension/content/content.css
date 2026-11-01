@@ -241,6 +241,51 @@
   background: #fbfbfc;
 }
 
+#tah-block-view .tah-day-head {
+  vertical-align: top;
+}
+
+#tah-block-view .tah-day-name {
+  display: block;
+  margin-bottom: 4px;
+}
+
+#tah-block-view .tah-day-tools {
+  display: flex;
+  gap: 3px;
+  justify-content: center;
+}
+
+#tah-block-view .tah-daybtn {
+  width: 22px;
+  height: 20px;
+  padding: 0;
+  border: 1px solid #d6dbe3;
+  border-radius: 3px;
+  background: #fff;
+  color: #9aa3ad;
+  font-size: 10px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+#tah-block-view .tah-daybtn:hover {
+  border-color: #1e4b8c;
+  color: #1e4b8c;
+}
+
+#tah-block-view .tah-daybtn-available.tah-daybtn-on {
+  background: #4caf50;
+  border-color: #3d9140;
+  color: #fff;
+}
+
+#tah-block-view .tah-daybtn-unavailable.tah-daybtn-on {
+  background: #a1887f;
+  border-color: #8d6e63;
+  color: #fff;
+}
+
 #tah-block-view .tah-block-cell {
   cursor: pointer;
   user-select: none;

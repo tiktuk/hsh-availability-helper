@@ -435,6 +435,45 @@ function blockCellNode(cells, label) {
   return td;
 }
 
+function dayCells(col) {
+  const from = parseTime(state.settings.dayFrom);
+  const to = parseTime(state.settings.dayTo);
+  const lo = from ? from.hh * 60 + from.mm : 0;
+  const hi = to ? to.hh * 60 + to.mm : 24 * 60;
+  return col.filter((td) => {
+    const m = minutesOf(td.dataset.timestamp);
+    return m >= lo && m < hi;
+  });
+}
+
+function dayHeadNode(col, header) {
+  const th = el('th', { class: 'tah-day-head' });
+  th.append(el('span', { class: 'tah-day-name', text: header.replace(',', '') }));
+
+  const cells = dayCells(col);
+  const info = summarize(cells);
+  const range = `${state.settings.dayFrom}–${state.settings.dayTo}`;
+  const tools = el('div', { class: 'tah-day-tools' });
+
+  const make = (kind, icon, title) => {
+    const btn = el('button', {
+      class: `tah-daybtn${info.kind === kind ? ' tah-daybtn-on' : ''} tah-daybtn-${kind}`,
+      type: 'button',
+      title: `${header.replace(',', '')}: ${range} ${title}`,
+    });
+    btn.append(el('i', { class: `fa ${icon}` }));
+    btn.addEventListener('click', () =>
+      applyToCells(cells, info.kind === kind ? 'not_set' : kind, `${header.replace(',', '')} ${range} ${title}`)
+    );
+    return btn;
+  };
+
+  tools.append(make('available', 'fa-check', 'verfügbar'));
+  tools.append(make('unavailable', 'fa-times', 'nicht verfügbar'));
+  th.append(tools);
+  return th;
+}
+
 function renderBlockView() {
   const host = document.querySelector('#tah-block-view');
   const grid = readGrid();
@@ -449,7 +488,7 @@ function renderBlockView() {
   const table = el('table', { class: 'tah-block-table' });
   const headRow = el('tr');
   headRow.append(el('th', { class: 'tah-block-label', text: 'Block' }));
-  for (const header of grid.headers) headRow.append(el('th', { text: header.replace(',', '') }));
+  grid.headers.forEach((header, i) => headRow.append(dayHeadNode(grid.cols[i], header)));
   table.append(el('thead', {}, [headRow]));
 
   const tbody = el('tbody');
