@@ -2,8 +2,10 @@
 
 Chrome extension for the guide side of `hsh.gomus.de`. On the availability grid
 it replaces 18 five-minute cells per tour with one 90-minute block, so a whole
-day is a handful of clicks instead of hundreds. On the calendar it turns the
-month's shifts into a printable invoice, letterhead and all.
+day is a handful of clicks instead of hundreds. In the week view it can overlay
+your own calendar — paste the **iCal** address and appointments appear in the
+grid, so you never offer a tour you are already busy for. On the calendar page it
+turns the month's shifts into a printable invoice, letterhead and all.
 
 ![The block view: one row per tour, one cell per day, with per-day check and cross buttons](docs/screenshot.png)
 

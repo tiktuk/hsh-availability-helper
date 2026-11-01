@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "HSH-Helper",
   "version": "1.0.0",
-  "description": "Fill guide availability in whole 90-minute tour blocks, and turn your shifts into a printable monthly invoice.",
+  "description": "Fill availability in whole tour blocks, overlay your own iCal calendar, and print the monthly invoice.",
   "minimum_chrome_version": "116",
   "icons": {
     "16": "icons/icon-16.png",
