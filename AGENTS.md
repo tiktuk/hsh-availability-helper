@@ -9,9 +9,10 @@ this file is for working on it.
 
 - `extension/manifest.json` – MV3, content script on `https://hsh.gomus.de/guide/*`, `storage` permission only.
 - `extension/content/content.js` – everything that runs on the page: grid model, block view, writes, panel UI, month invoice.
-- `extension/popup/` – settings (block length, preset times, working-hours window, invoice numbering).
+- `extension/popup/` – settings (block length, preset times, working-hours window); links to the invoice settings.
+- `extension/options/` – invoice letterhead: sender, recipient, Steuernummer, bank, texts, signature, number range.
 - `extension/background.js` – service worker; its only job is opening the invoice tab (`chrome.tabs.create`).
-- `extension/invoice/` – the printable invoice page (`chrome-extension://` URL, data handed over via `chrome.storage.local`).
+- `extension/invoice/` – the printable invoice page (`chrome-extension://` URL): rows from `chrome.storage.local`, letter from the settings.
 - `tools/dev-inject.js` – loads the content script into an already-open page (see Verification).
 - `tools/make_icons.py` – regenerates `extension/icons/*.png`.
 
@@ -43,9 +44,12 @@ writes on `window.__tahLocal` / `window.__tahSync`, so the whole invoice flow ca
 the live calendar page without installing anything (it only issues GETs).
 
 Loading the unpacked extension into a Playwright-launched Chrome does not work – Chrome refuses
-`--load-extension` under automation. Test the popup and `invoice/invoice.html` by serving the repo
-root over HTTP with a stubbed `chrome.storage` (`addInitScript`). For print layout use
-`browser_emulate_media { media: "print" }`.
+`--load-extension` under automation. Test the popup, `options/options.html` and `invoice/invoice.html`
+by serving the repo root over HTTP with a stubbed `chrome.storage` (`addInitScript`; the options page
+also needs `local.remove`, the invoice page `local.get({ invoice, signature })`). For print layout use
+`browser_emulate_media { media: "print" }` — `Page.printToPDF` is not reachable through the MCP
+sandbox, so assert on computed styles (`display`, `breakBefore`) instead. Chrome's heuristic caching
+of those files is aggressive; call `Network.clearBrowserCache` before believing a CSS/JS change.
 
 ## How the site works (learned the hard way)
 
@@ -124,11 +128,25 @@ Data comes from the bookings list, not the calendar grid:
   Only trailing digits count when finding the highest number, since prefixes
   contain digits too.
 - The payload is written to `chrome.storage.local.invoice`; `background.js`
-  opens `invoice/invoice.html`, which only reads it. It cannot be opened from
+  opens `invoice/invoice.html`, which reads it and draws the letter from the
+  settings (`chrome.storage.sync`, defaults in `invoice.js` mirroring
+  `options/options.js`). It cannot be opened from
   the page directly (`chrome-extension://` URLs are blocked for web content).
   The worker opens it with `sender.tab.windowId` and `active: true`; without
   that Chrome picks the focused window and the tab shows up somewhere else.
   A failed `tabs.create` is reported back and surfaced, never swallowed.
+- The letter mirrors the paper invoices the guide actually sends: sender and
+  recipient blocks, `Rechnung <Nummer>`, `Honorar für <Monat>`, Steuernummer,
+  greeting, intro, the two assurance clauses, bank details, closing, signature —
+  then the services table (`Buchung | Datum | von | bis | Angebotstitel | Kunde |
+  Honorar`, `bis` computed from the duration) on a second page
+  (`page-break-before`). Empty settings are skipped, not printed as blanks. If no
+  sender name is set the invoice falls back to the payload's `guide` and shows a
+  screen-only warning bar; the warning is `display: none` in print.
+- Settings that describe the person (sender, tax number, bank, texts) are
+  `chrome.storage.sync`. The signature image is **local only** —
+  `chrome.storage.local.signature` as a data URL, shrunk to 800 px wide on
+  upload — because it blows past the 8 KB per-item sync quota.
 - A month without bookings keeps **Rechnung erstellen** disabled and says so in
   the panel, instead of failing after the click. The button is also disabled
   while a preview loads, so a click cannot race the preview.

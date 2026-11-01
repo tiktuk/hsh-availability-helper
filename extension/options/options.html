@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="de">
+  <head>
+    <meta charset="utf-8" />
+    <link rel="stylesheet" href="options.css" />
+    <title>Rechnung einrichten</title>
+  </head>
+  <body>
+    <h1>Rechnung einrichten</h1>
+    <p class="sub">Briefkopf, Texte und Unterschrift für die Monatsrechnung. Leere Felder erscheinen nicht auf der Rechnung.</p>
+
+    <section>
+      <h2>Rechnungssteller</h2>
+      <div class="grid">
+        <label class="field">
+          <span>Name</span>
+          <input id="senderName" type="text" placeholder="Max Mustermann" />
+        </label>
+        <label class="field">
+          <span>Straße und Hausnummer</span>
+          <input id="senderStreet" type="text" placeholder="Musterstraße 1" />
+        </label>
+        <label class="field">
+          <span>PLZ und Ort</span>
+          <input id="senderCity" type="text" placeholder="12345 Musterstadt" />
+        </label>
+        <label class="field">
+          <span>Steuernummer</span>
+          <input id="taxNumber" type="text" placeholder="12/345/67890" />
+        </label>
+      </div>
+    </section>
+
+    <section>
+      <h2>Rechnungsempfänger</h2>
+      <div class="grid">
+        <label class="field">
+          <span>Name</span>
+          <input id="recipientName" type="text" placeholder="Stiftung Gedenkstätte Berlin-Höhenschönhausen" />
+        </label>
+        <label class="field">
+          <span>Straße und Hausnummer</span>
+          <input id="recipientStreet" type="text" placeholder="Genslerstraße 66" />
+        </label>
+        <label class="field">
+          <span>PLZ und Ort</span>
+          <input id="recipientCity" type="text" placeholder="13055 Berlin" />
+        </label>
+      </div>
+    </section>
+
+    <section>
+      <h2>Bankverbindung</h2>
+      <div class="grid">
+        <label class="field">
+          <span>Name der Bank</span>
+          <input id="bankName" type="text" placeholder="Musterbank" />
+        </label>
+        <label class="field">
+          <span>IBAN</span>
+          <input id="iban" type="text" placeholder="DE00 0000 0000 0000 0000 00" spellcheck="false" />
+        </label>
+        <label class="field">
+          <span>BIC</span>
+          <input id="bic" type="text" placeholder="ABCDDEFFXXX" spellcheck="false" />
+        </label>
+      </div>
+    </section>
+
+    <section>
+      <h2>Texte</h2>
+      <label class="field">
+        <span>Anrede</span>
+        <input id="salutation" type="text" placeholder="Sehr geehrte Damen und Herren," />
+      </label>
+      <label class="field">
+        <span>Einleitung</span>
+        <textarea id="intro" rows="2" placeholder="vielen Dank für Ihren Auftrag. Wie vereinbart stelle ich Ihnen folgende Leistung in Rechnung:"></textarea>
+      </label>
+      <label class="field">
+        <span>Versicherung</span>
+        <textarea id="assurance" rows="4" placeholder="dass für diese Leistungen ein weiteres Honorar von einer anderen Stelle weder erbeten noch gezahlt wurde&#10;alle Steuern und Sozialabgaben, die sich aus den Gesamteinkünften dieser Abrechnung ergeben, von mir selbst getragen und abgeführt werden."></textarea>
+      </label>
+      <p class="hint">Eine Zeile je Aufzählungspunkt. Die Zeile „Ich versichere,“ steht fest darüber.</p>
+      <label class="field">
+        <span>Schluss</span>
+        <textarea id="closing" rows="3" placeholder="Diese Rechnung ist auch ohne Unterschrift gültig.&#10;Mit freundlichen Grüßen"></textarea>
+      </label>
+    </section>
+
+    <section>
+      <h2>Unterschrift</h2>
+      <div class="signature">
+        <img id="signaturePreview" alt="Unterschrift" hidden />
+        <div class="signature-actions">
+          <input id="signatureFile" type="file" accept="image/*" />
+          <button id="signatureRemove" class="secondary" type="button" hidden>Entfernen</button>
+        </div>
+      </div>
+      <p class="hint">PNG oder JPG, wird auf 800 px Breite verkleinert und nur lokal auf diesem Rechner gespeichert (nicht synchronisiert).</p>
+    </section>
+
+    <section>
+      <h2>Nummernkreis</h2>
+      <div class="grid">
+        <label class="field">
+          <span>Rechnungsnummer ab</span>
+          <input id="invoiceStart" type="number" min="1" step="1" />
+        </label>
+        <label class="field">
+          <span>Präfix</span>
+          <input id="invoicePrefix" type="text" placeholder="z. B. 2026-" />
+        </label>
+      </div>
+      <p class="hint">Jeder Monat behält seine Nummer; auf der Rechnung selbst ist sie änderbar. Dreistellig, z. B. <code>2026-007</code>.</p>
+    </section>
+
+    <div class="actions">
+      <button id="save">Speichern</button>
+      <button id="reset" class="secondary">Zurücksetzen</button>
+    </div>
+    <p id="saved" class="saved"></p>
+
+    <script src="options.js"></script>
+  </body>
+</html>

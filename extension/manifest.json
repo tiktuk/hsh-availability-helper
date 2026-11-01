@@ -19,6 +19,10 @@
   },
   "permissions": ["storage"],
   "host_permissions": ["https://hsh.gomus.de/*"],
+  "options_ui": {
+    "page": "options/options.html",
+    "open_in_tab": true
+  },
   "background": {
     "service_worker": "background.js"
   },

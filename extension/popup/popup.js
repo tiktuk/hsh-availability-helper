@@ -7,8 +7,6 @@ const DEFAULTS = {
   hideOutside: true,
   dayFrom: '09:55',
   dayTo: '18:30',
-  invoiceStart: 1,
-  invoicePrefix: '',
 };
 
 const durationInput = document.querySelector('#duration');
@@ -17,8 +15,6 @@ const altClickInput = document.querySelector('#altClick');
 const hideOutsideInput = document.querySelector('#hideOutside');
 const dayFromInput = document.querySelector('#dayFrom');
 const dayToInput = document.querySelector('#dayTo');
-const invoiceStartInput = document.querySelector('#invoiceStart');
-const invoicePrefixInput = document.querySelector('#invoicePrefix');
 const saved = document.querySelector('#saved');
 
 function parsePresets(value) {
@@ -41,8 +37,6 @@ async function load() {
   hideOutsideInput.checked = stored.hideOutside !== false;
   dayFromInput.value = stored.dayFrom || DEFAULTS.dayFrom;
   dayToInput.value = stored.dayTo || DEFAULTS.dayTo;
-  invoiceStartInput.value = String(stored.invoiceStart || DEFAULTS.invoiceStart);
-  invoicePrefixInput.value = stored.invoicePrefix || '';
 }
 
 async function save() {
@@ -54,8 +48,6 @@ async function save() {
     hideOutside: hideOutsideInput.checked,
     dayFrom: dayFromInput.value || DEFAULTS.dayFrom,
     dayTo: dayToInput.value || DEFAULTS.dayTo,
-    invoiceStart: Math.max(1, Number(invoiceStartInput.value) || DEFAULTS.invoiceStart),
-    invoicePrefix: invoicePrefixInput.value.trim(),
   });
   saved.textContent = 'Gespeichert.';
   setTimeout(() => {
@@ -64,6 +56,7 @@ async function save() {
 }
 
 document.querySelector('#save').addEventListener('click', save);
+document.querySelector('#openOptions').addEventListener('click', () => chrome.runtime.openOptionsPage());
 document.querySelector('#reset').addEventListener('click', async () => {
   await chrome.storage.sync.set(DEFAULTS);
   await load();

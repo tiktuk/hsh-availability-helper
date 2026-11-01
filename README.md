@@ -77,18 +77,30 @@ Plain clicks behave exactly like before: a single 5-minute cell toggles
 through `nicht gesetzt → verfügbar → nicht verfügbar`.
 
 The toolbar icon opens the settings: block length, the list of quick start
-times, whether Alt+Klick is active, the visible working-hours range, and the
-first invoice number.
+times, whether Alt+Klick is active and the visible working-hours range. From
+there, **Rechnung einrichten …** opens the invoice settings.
 
 ## Monatsrechnung
 
 On `/guide/calendar` the month header has a **Rechnung** button. Pick a month
 (prefilled with the month on screen) and the panel shows a live preview — number
 of tours, sum, and the invoice number that month would get. **Rechnung
-erstellen** then opens a printable invoice in a new tab: one row per booking
-with customer, date, time, duration, booking number and the Honorar stored on
-the booking, plus the sum. **Drucken / als PDF speichern** opens the browser's
-print dialog.
+erstellen** then opens a printable invoice in a new tab. **Drucken / als PDF
+speichern** opens the browser's print dialog.
+
+The invoice is a letter plus a services table: sender and recipient blocks,
+`Rechnung <Nummer>`, "Honorar für <Monat>", Steuernummer, greeting, intro, the
+two assurance clauses, bank details, closing line and your signature image, then
+one row per booking (Buchung, Datum, von, bis, Angebotstitel, Kunde, Honorar)
+with the sum on its own page.
+
+Everything in that letter comes from **Rechnung einrichten** (popup → the
+button): name and address, recipient, Steuernummer, bank details, all texts, and
+the signature image. Empty fields simply do not appear, so a letter without a
+Steuernummer or bank details still prints. The fields carry example text as
+placeholders — nothing is prefilled with real data, except the recipient, which
+defaults to the museum. The signature is shrunk to 800 px wide and kept in local
+storage only, so it is not synced between machines.
 
 A month without bookings says so in the panel and keeps the button disabled —
 there is nothing to bill yet.
@@ -101,10 +113,10 @@ they are left off the invoice and the panel says how many. If a booking has no
 customer (public tours), the Gruppenbezeichnung from the booking comment is used,
 and failing that the tour title.
 
-Invoice numbers continue from **Rechnungsnummer ab** in the settings, with an
-optional prefix (e.g. `RE-2026-`). Each month keeps the number it was first
-given, so opening a month again does not burn a number, and the number can be
-edited directly on the invoice.
+Invoice numbers continue from **Rechnungsnummer ab** in the invoice settings,
+with an optional prefix (e.g. `RE-2026-`). Each month keeps the number it was
+first given, so opening a month again does not burn a number, and the number can
+be edited directly on the invoice.
 
 ## Tastenkürzel
 

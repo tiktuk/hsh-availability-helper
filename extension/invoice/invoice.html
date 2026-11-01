@@ -6,53 +6,65 @@
     <title>Rechnung</title>
   </head>
   <body>
-    <main class="sheet" id="sheet">
-      <header class="head">
-        <div class="head-title">
-          <h1>Rechnung</h1>
-          <p class="period" id="period"></p>
-        </div>
-        <dl class="meta">
-          <dt>Rechnungsnummer</dt>
-          <dd><input id="number" class="number" type="text" spellcheck="false" aria-label="Rechnungsnummer" /></dd>
-          <dt>Rechnungsdatum</dt>
-          <dd id="issued"></dd>
-          <dt>Rechnungssteller</dt>
-          <dd id="guide"></dd>
-        </dl>
-      </header>
+    <p class="warn" id="warn" hidden>Briefkopf fehlt – bitte im Popup unter <strong>Rechnung einrichten</strong> Name und Adresse ergänzen.</p>
+
+    <main class="sheet letter" id="letter">
+      <p class="sender" id="sender"></p>
+      <p class="recipient" id="recipient"></p>
+
+      <h1 class="number-line">Rechnung <input id="number" class="number" type="text" spellcheck="false" aria-label="Rechnungsnummer" /></h1>
+      <p class="subject" id="subject"></p>
+      <p class="tax" id="tax"></p>
+
+      <p class="salutation" id="salutation"></p>
+      <p class="intro" id="intro"></p>
+
+      <p class="assurance-lead" id="assuranceLead">Ich versichere,</p>
+      <ul class="assurance" id="assurance"></ul>
+
+      <p class="bank-lead" id="bankLead">Ich bitte um Überweisung auf mein Konto:</p>
+      <dl class="bank" id="bank"></dl>
+
+      <p class="closing" id="closing"></p>
+      <img class="signature" id="signature" alt="Unterschrift" hidden />
+    </main>
+
+    <main class="sheet services" id="services">
+      <p class="services-head" id="servicesHead"></p>
 
       <table class="rows">
         <thead>
           <tr>
-            <th class="col-customer">Kunde</th>
-            <th class="col-date">Datum</th>
-            <th class="col-time">Zeit</th>
-            <th class="col-duration">Dauer</th>
             <th class="col-id">Buchung</th>
-            <th class="col-amount">Betrag</th>
+            <th class="col-date">Datum</th>
+            <th class="col-time">von</th>
+            <th class="col-time">bis</th>
+            <th class="col-tour">Angebotstitel</th>
+            <th class="col-customer">Kunde</th>
+            <th class="col-amount">Honorar</th>
           </tr>
         </thead>
         <tbody id="rows"></tbody>
         <tfoot>
           <tr>
-            <th colspan="5">Summe</th>
+            <th colspan="6">Gesamtsumme</th>
             <th class="col-amount" id="total"></th>
           </tr>
         </tfoot>
       </table>
 
       <p class="note" id="note">Alle berechenbaren Einsätze des Monats, einschließlich vergangener und noch nicht bestätigter Termine sowie Stornierungen durch die Gruppe (Ausfallhonorar).</p>
-
-      <p class="empty" id="empty" hidden>
-        Keine Rechnungsdaten. Öffne den Kalender unter <code>hsh.gomus.de/guide/calendar</code> und klicke auf
-        <strong>Rechnung</strong>, um eine Monatsrechnung zu erstellen.
-      </p>
-
-      <div class="actions">
-        <button id="print" type="button">Drucken / als PDF speichern</button>
-      </div>
     </main>
+
+    <p class="empty" id="empty" hidden>
+      Keine Rechnungsdaten. Öffne den Kalender unter <code>hsh.gomus.de/guide/calendar</code> und klicke auf
+      <strong>Rechnung</strong>, um eine Monatsrechnung zu erstellen.
+    </p>
+
+    <div class="actions">
+      <button id="print" type="button">Drucken / als PDF speichern</button>
+    </div>
+
     <script src="invoice.js"></script>
   </body>
 </html>
