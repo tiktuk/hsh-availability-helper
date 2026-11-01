@@ -1083,12 +1083,39 @@ function annotateNav() {
   });
 }
 
-// Alt+1…9 follow the site's own sidebar order; Alt+R opens the invoice panel.
+// The month arrows are plain links to ?start_at=<month>; the month they point at
+// is the only reliable way to tell previous from next (their labels are tooltips).
+// Match exactly ±1: the middle "aktueller Monat" link points at today's month,
+// not the one on screen, so a < / > comparison can pick the wrong arrow.
+function calendarNavLinks() {
+  const box = calendarBox();
+  if (!box) return {};
+  const current = calendarMonth();
+  const links = [...box.querySelectorAll('.ibox-title a[href]')]
+    .map((link) => ({ link, month: (new URL(link.href).searchParams.get('start_at') || '').slice(0, 7) }))
+    .filter((entry) => /^\d{4}-\d{2}$/.test(entry.month));
+  return {
+    previous: links.find((entry) => entry.month === addMonths(current, -1))?.link,
+    next: links.find((entry) => entry.month === addMonths(current, 1))?.link,
+  };
+}
+
+// Alt+1…9 follow the site's own sidebar order, Alt+R opens the invoice panel,
+// Alt+P / Alt+N walk the calendar month by month.
 function onShortcutKey(event) {
   if (!event.altKey || event.ctrlKey || event.metaKey || event.shiftKey || event.repeat) return;
 
   if (event.code === 'KeyR') {
     if (toggleInvoicePanel(true)) event.preventDefault();
+    return;
+  }
+
+  if (event.code === 'KeyP' || event.code === 'KeyN') {
+    const { previous, next } = calendarNavLinks();
+    const link = event.code === 'KeyP' ? previous : next;
+    if (!link) return;
+    event.preventDefault();
+    link.click();
     return;
   }
 

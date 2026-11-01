@@ -128,6 +128,15 @@ single source of truth; the key is also written into each link's `title` so it
 is discoverable. `Alt+R` opens the invoice panel and returns `false` (without
 `preventDefault`) on pages that have none.
 
+`Alt+P` / `Alt+N` click the month arrows, which are plain links to
+`?start_at=<month>`. Their labels are bootstrap tooltips (`data-original-title`),
+so the target month is read from the href instead — and matched to exactly
+`current ∓ 1`. The middle "aktueller Monat" link always points at **today's**
+month rather than the one on screen, so a `<` / `>` comparison can resolve the
+wrong arrow once you have navigated away from today. Navigating is a full page
+load, which is why the shortcuts go through `link.click()` rather than
+`location.assign`: the site's own handler stays in charge.
+
 Match on `event.code`, not `event.key`: with Alt held, macOS and German layouts
 produce `®` / `¡` instead of the letter or digit. Synthetic `KeyboardEvent`s
 dispatched from the page world do reach the content script's listener, which is
