@@ -1,8 +1,9 @@
-# Tour Availability Helper
+# HSH-Helper
 
-Chrome extension for the guide availability grid on `hsh.gomus.de/guide/availables`.
-Instead of ticking 18 five-minute cells for every tour, you mark a whole
-90-minute tour block with one click.
+Chrome extension for the guide side of `hsh.gomus.de`. On the availability grid
+it replaces 18 five-minute cells per tour with one 90-minute block, so a whole
+day is a handful of clicks instead of hundreds. On the calendar it turns the
+month's shifts into a printable invoice, letterhead and all.
 
 ![The block view: one row per tour, one cell per day, with per-day check and cross buttons](docs/screenshot.png)
 
@@ -14,10 +15,10 @@ and Chrome's extension page is only reachable through the **browser menu** —
 `chrome://extensions` is not a clickable link.
 
 1. **Get the code.** Open
-   <https://github.com/tiktuk/hsh-availability-helper>, click the green
+   <https://github.com/tiktuk/hsh-helper>, click the green
    **Code** button → **Download ZIP**, then unzip it somewhere you will keep it
    (e.g. `Documents`). With git installed, `git clone
-   https://github.com/tiktuk/hsh-availability-helper.git` does the same.
+   https://github.com/tiktuk/hsh-helper.git` does the same.
    Chrome loads the extension from that folder on every start, so don't delete
    it afterwards.
 2. **Open the extensions page.** Click the **⋮** menu at the top right of
@@ -26,16 +27,68 @@ and Chrome's extension page is only reachable through the **browser menu** —
    comes from a web page.)
 3. Turn on **Developer mode** (toggle at the top right of that page).
 4. Click **Load unpacked** and select the `extension` folder *inside* the
-   downloaded folder (`hsh-availability-helper/extension`), not the folder you
+   downloaded folder (`hsh-helper/extension`), not the folder you
    unzipped.
 5. Open (or reload) <https://hsh.gomus.de/guide/availables>. The grid should now
    be the block view; the toolbar icon opens the settings.
 
-To update later, replace the folder with a fresh download and press the reload
-arrow on the extension card in `chrome://extensions`.
+To update an installed copy later, see [Update](#update).
 
 The extension only runs on `hsh.gomus.de/guide/*`, needs no account of its own
 and talks to the site with your existing login session.
+
+## Update
+
+Chrome does not update an unpacked extension by itself, so a new version only
+arrives when you fetch it and reload the extension. How you fetch it depends on
+how you installed it: **`git pull` only works if you cloned the repository.** If
+you used **Download ZIP**, that folder is not a git repository and git will just
+say `not a git repository`.
+
+Either way, the last step is the same:
+
+- Open `chrome://extensions` and click the **circular arrow** on the
+  **HSH-Helper** card (or press the reload icon on the card).
+- Then reload the `hsh.gomus.de` tab. A tab that was already open keeps running
+  the old code until you do.
+
+### If you cloned with git
+
+One-time, if you have not cloned it yet:
+
+```sh
+cd ~/Documents                    # or wherever you want to keep the folder
+git clone https://github.com/tiktuk/hsh-helper.git
+```
+
+Then load `hsh-helper/extension` in Chrome as described above. Later, to update:
+
+1. Open a terminal **inside the `hsh-helper` folder**:
+   - **macOS:** open Terminal, type `cd ` (with the space), drag the folder from
+     Finder into the window, press Enter. Or right-click the folder in Finder →
+     **Services** → **New Terminal at Folder**. The first time, macOS may offer
+     to install the developer tools — accept, that is where `git` comes from.
+   - **Windows:** open the folder in Explorer, click the address bar, type `cmd`,
+     press Enter.
+2. Run `git pull`. It lists the changed files, or says `Already up to date.`
+   when there is nothing new.
+3. Reload the extension as above.
+
+Check that Chrome loads the `extension` folder *inside the cloned copy*:
+**Details** on the card in `chrome://extensions` shows the folder it was loaded
+from. If you installed from a ZIP earlier, remove that card and load the cloned
+folder once; after that, `git pull` is all it takes to stay current.
+
+### If you downloaded the ZIP
+
+Open <https://github.com/tiktuk/hsh-helper>, click **Code** → **Download ZIP**,
+unzip it and let it replace the old folder — or delete the old folder first and
+unzip to the same place. Keep the path identical, since that is where Chrome
+loads the extension from. Then reload the extension as above.
+
+Your settings — letterhead, bank details, signature, invoice numbers — live in
+Chrome's extension storage, not in that folder, so updating either way keeps
+them.
 
 ## What it does
 
