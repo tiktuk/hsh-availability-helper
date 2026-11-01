@@ -89,7 +89,7 @@ On every guide page, hold **Alt**:
 | Keys | Action |
 | --- | --- |
 | `Alt+1` … `Alt+6` | jump to the sidebar entries in their order: Dashboard, Buchungsliste, Kalender, Verfügbarkeiten, Termingruppen, Helpdesk |
-| `Alt+R` | open the invoice panel on the calendar page, with the preview for the month on screen |
+| `Alt+R` | show the invoice preview for the month on screen — press it again to create the invoice |
 | `Alt+P` / `Alt+N` | previous / next month on the calendar page |
 
 The sidebar entries show their key in the tooltip. `Alt+R` does nothing on

@@ -125,8 +125,9 @@ Data comes from the bookings list, not the calendar grid:
 `installShortcuts()` runs on every guide page. `Alt+1…9` map to the site's own
 `nav[role=navigation] ul.nav > li > a` in DOM order, so the sidebar stays the
 single source of truth; the key is also written into each link's `title` so it
-is discoverable. `Alt+R` opens the invoice panel and returns `false` (without
-`preventDefault`) on pages that have none.
+is discoverable. `Alt+R` is two-step: closed panel → open + preview, open panel
+with a ready preview → the same click as the button (so it bills the month).
+It returns `false` (without `preventDefault`) on pages that have no panel.
 
 `Alt+P` / `Alt+N` click the month arrows, which are plain links to
 `?start_at=<month>`. Their labels are bootstrap tooltips (`data-original-title`),

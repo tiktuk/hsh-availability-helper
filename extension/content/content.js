@@ -1043,7 +1043,7 @@ function mountInvoice() {
   previewBox.hidden = true;
   panel.append(label, go, el('span', { id: 'tah-invoice-status', class: 'tah-invoice-status' }));
   panel.append(previewBox);
-  panel.append(el('div', { class: 'tah-hint', text: 'Alle gebuchten Einsätze des Monats, auch vergangene und unbestätigte. Öffnet eine druckbare Rechnung (Alt+R).' }));
+  panel.append(el('div', { class: 'tah-hint', text: 'Alle gebuchten Einsätze des Monats, auch vergangene und unbestätigte. Alt+R zeigt die Vorschau, nochmal Alt+R erstellt die Rechnung.' }));
   title.append(panel);
 
   month.addEventListener('input', () => scheduleInvoicePreview());
@@ -1100,13 +1100,31 @@ function calendarNavLinks() {
   };
 }
 
+// First Alt+R opens the panel with the preview, a second one bills the month —
+// the same two steps as looking at the numbers and pressing the button.
+function invoiceShortcut() {
+  const panel = document.querySelector('#tah-invoice-panel');
+  if (!panel) return false;
+
+  if (!panel.classList.contains('tah-open')) {
+    toggleInvoicePanel(true);
+    return true;
+  }
+
+  const go = document.querySelector('#tah-invoice-go');
+  const month = document.querySelector('#tah-invoice-month')?.value;
+  if (go && !go.disabled && state.invoicePreview?.month === month) go.click();
+  else scheduleInvoicePreview(0);
+  return true;
+}
+
 // Alt+1…9 follow the site's own sidebar order, Alt+R opens the invoice panel,
 // Alt+P / Alt+N walk the calendar month by month.
 function onShortcutKey(event) {
   if (!event.altKey || event.ctrlKey || event.metaKey || event.shiftKey || event.repeat) return;
 
   if (event.code === 'KeyR') {
-    if (toggleInvoicePanel(true)) event.preventDefault();
+    if (invoiceShortcut()) event.preventDefault();
     return;
   }
 
