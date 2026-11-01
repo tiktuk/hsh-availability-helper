@@ -1,0 +1,202 @@
+#tah-panel {
+  position: sticky;
+  top: 52px;
+  z-index: 30;
+  margin: 0 0 10px;
+  padding: 10px 12px;
+  background: #fff;
+  border: 1px solid #e7eaec;
+  border-left: 4px solid #1e4b8c;
+  border-radius: 3px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+  font-size: 12px;
+  color: #333;
+}
+
+#tah-panel .tah-head {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+#tah-panel .tah-head strong {
+  font-size: 13px;
+  color: #1e4b8c;
+}
+
+#tah-panel .tah-sub {
+  color: #999;
+  font-size: 11px;
+}
+
+#tah-panel .tah-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 6px;
+}
+
+#tah-panel .tah-label {
+  color: #777;
+  min-width: 48px;
+}
+
+#tah-panel .tah-presets {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+
+#tah-panel .tah-preset {
+  min-width: 54px;
+  padding: 4px 8px;
+  border: 1px solid #1e4b8c;
+  background: #f4f7fb;
+  color: #1e4b8c;
+  border-radius: 3px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+#tah-panel .tah-preset:hover {
+  background: #1e4b8c;
+  color: #fff;
+}
+
+#tah-panel .tah-field {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin: 0;
+  font-weight: normal;
+  color: #555;
+}
+
+#tah-panel .tah-input {
+  height: 26px;
+  padding: 2px 6px;
+  border: 1px solid #ccc;
+  border-radius: 3px;
+  font-size: 12px;
+}
+
+#tah-panel .tah-input-num {
+  width: 56px;
+}
+
+#tah-panel .tah-days {
+  display: flex;
+  gap: 3px;
+  margin-left: auto;
+}
+
+#tah-panel .tah-day {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 2px 6px;
+  border: 1px solid #d6dbe3;
+  background: #f7f8fa;
+  color: #9aa3ad;
+  border-radius: 3px;
+  line-height: 1.1;
+  cursor: pointer;
+}
+
+#tah-panel .tah-day small {
+  font-size: 9px;
+  opacity: 0.8;
+}
+
+#tah-panel .tah-day-on {
+  border-color: #1e4b8c;
+  background: #e8eef7;
+  color: #1e4b8c;
+  font-weight: 600;
+}
+
+#tah-panel .tah-actions {
+  gap: 6px;
+}
+
+#tah-panel .tah-btn {
+  padding: 4px 10px;
+  border-radius: 3px;
+  border: 1px solid transparent;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+#tah-panel .tah-yes {
+  background: #4caf50;
+  border-color: #3d9140;
+  color: #fff;
+}
+
+#tah-panel .tah-no {
+  background: #a1887f;
+  border-color: #8d6e63;
+  color: #fff;
+}
+
+#tah-panel .tah-clear {
+  background: #fff;
+  border-color: #ccc;
+  color: #555;
+}
+
+#tah-panel .tah-btn:hover:not(:disabled) {
+  filter: brightness(1.08);
+}
+
+#tah-panel .tah-btn:disabled,
+#tah-panel .tah-preset:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+#tah-panel .tah-toggle {
+  margin-left: 10px;
+  gap: 5px;
+  cursor: pointer;
+}
+
+#tah-panel .tah-toggle input {
+  margin: 0;
+  cursor: pointer;
+}
+
+#tah-panel .tah-toggle span {
+  color: #777;
+  font-size: 11px;
+}
+
+#tah-panel .tah-hint {
+  color: #999;
+  font-size: 11px;
+}
+
+/* Rows outside the working hours. !important beats the site's inline
+   display values, so its collapse/expand toggles cannot bring them back. */
+.available-table tr.tah-row-hidden {
+  display: none !important;
+}
+
+#tah-panel .tah-status {
+  min-height: 16px;
+  margin-top: 4px;
+  font-size: 11px;
+  color: #555;
+}
+
+#tah-panel .tah-link {
+  border: none;
+  background: none;
+  padding: 0;
+  color: #1e4b8c;
+  text-decoration: underline;
+  cursor: pointer;
+  font-size: 11px;
+}

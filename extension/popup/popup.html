@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="de">
+  <head>
+    <meta charset="utf-8" />
+    <link rel="stylesheet" href="popup.css" />
+    <title>Tour-Blöcke</title>
+  </head>
+  <body>
+    <h1>Tour-Blöcke</h1>
+    <p class="sub">Verfügbarkeiten in ganzen Tour-Blöcken statt in 5-Minuten-Slots.</p>
+
+    <label class="field">
+      <span>Blockdauer (Minuten)</span>
+      <input id="duration" type="number" min="5" step="5" />
+    </label>
+
+    <label class="field">
+      <span>Schnellwahl-Startzeiten</span>
+      <input id="presets" type="text" placeholder="09:55, 11:55, 13:55" />
+    </label>
+    <p class="hint">Kommagetrennt, Format HH:MM, in Ortszeit. Ein Klick auf eine dieser Zeiten markiert den ganzen Block als verfügbar. Voreinstellung: die üblichen Rundgang-Zeiten 09:55 bis 16:35.</p>
+
+    <label class="check">
+      <input id="altClick" type="checkbox" />
+      <span>Alt+Klick auf eine Zelle markiert den Block ab dort</span>
+    </label>
+
+    <label class="check">
+      <input id="hideOutside" type="checkbox" />
+      <span>Zeiten außerhalb der Arbeitszeit ausblenden</span>
+    </label>
+
+    <div class="range">
+      <label class="field">
+        <span>von</span>
+        <input id="dayFrom" type="time" step="300" />
+      </label>
+      <label class="field">
+        <span>bis</span>
+        <input id="dayTo" type="time" step="300" />
+      </label>
+    </div>
+
+    <div class="actions">
+      <button id="save">Speichern</button>
+      <button id="reset" class="secondary">Zurücksetzen</button>
+    </div>
+    <p id="saved" class="saved"></p>
+
+    <script src="popup.js"></script>
+  </body>
+</html>

@@ -1,0 +1,30 @@
+{
+  "manifest_version": 3,
+  "name": "Tour Availability Helper",
+  "version": "1.0.0",
+  "description": "Fill guide availability in whole tour blocks (starts at :55, 90 minutes long) instead of clicking 5-minute slots one by one.",
+  "minimum_chrome_version": "116",
+  "icons": {
+    "16": "icons/icon-16.png",
+    "48": "icons/icon-48.png",
+    "128": "icons/icon-128.png"
+  },
+  "action": {
+    "default_popup": "popup/popup.html",
+    "default_icon": {
+      "16": "icons/icon-16.png",
+      "48": "icons/icon-48.png",
+      "128": "icons/icon-128.png"
+    }
+  },
+  "permissions": ["storage"],
+  "host_permissions": ["https://hsh.gomus.de/*"],
+  "content_scripts": [
+    {
+      "matches": ["https://hsh.gomus.de/guide/*"],
+      "js": ["content/content.js"],
+      "css": ["content/content.css"],
+      "run_at": "document_idle"
+    }
+  ]
+}
