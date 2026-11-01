@@ -157,8 +157,34 @@
   cursor: default;
 }
 
+#tah-panel .tah-segs {
+  display: inline-flex;
+  border: 1px solid #d6dbe3;
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+#tah-panel .tah-seg {
+  padding: 3px 10px;
+  border: none;
+  background: #fff;
+  color: #777;
+  font-size: 11px;
+  cursor: pointer;
+}
+
+#tah-panel .tah-seg + .tah-seg {
+  border-left: 1px solid #d6dbe3;
+}
+
+#tah-panel .tah-seg-on {
+  background: #1e4b8c;
+  color: #fff;
+  font-weight: 600;
+}
+
 #tah-panel .tah-toggle {
-  margin-left: 10px;
+  margin-left: auto;
   gap: 5px;
   cursor: pointer;
 }
@@ -182,6 +208,84 @@
    display values, so its collapse/expand toggles cannot bring them back. */
 .available-table tr.tah-row-hidden {
   display: none !important;
+}
+
+/* Block view: one row per tour instead of per five-minute slot. */
+#tah-block-view .tah-block-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+  margin-bottom: 10px;
+}
+
+#tah-block-view th,
+#tah-block-view td {
+  border: 1px solid #e3e7ec;
+  padding: 7px 8px;
+  text-align: center;
+  vertical-align: middle;
+}
+
+#tah-block-view thead th {
+  background: #f7f8fa;
+  font-weight: 600;
+  color: #555;
+  white-space: nowrap;
+}
+
+#tah-block-view .tah-block-label {
+  text-align: left;
+  font-weight: 600;
+  color: #444;
+  white-space: nowrap;
+  background: #fbfbfc;
+}
+
+#tah-block-view .tah-block-cell {
+  cursor: pointer;
+  user-select: none;
+  min-width: 64px;
+}
+
+#tah-block-view .tah-block-cell:hover {
+  outline: 2px solid #1e4b8c;
+  outline-offset: -2px;
+}
+
+#tah-block-view .tah-block-available {
+  background: #8fd88f;
+  color: #1b5e20;
+}
+
+#tah-block-view .tah-block-not_set {
+  background: #fff;
+  color: #c2c8d0;
+}
+
+#tah-block-view .tah-block-unavailable {
+  background: #d9c8c0;
+  color: #6d4c41;
+}
+
+#tah-block-view .tah-block-mixed {
+  background: repeating-linear-gradient(45deg, #d7eed7, #d7eed7 5px, #fff 5px, #fff 10px);
+  color: #2e7d32;
+}
+
+#tah-block-view .tah-block-mixed small {
+  margin-left: 4px;
+  font-size: 10px;
+}
+
+#tah-block-view .tah-block-past {
+  background: #f4f5f7;
+  color: #cfd4da;
+  cursor: default;
+}
+
+#tah-block-view .tah-block-booked {
+  margin-left: 4px;
+  color: #1e4b8c;
 }
 
 #tah-panel .tah-status {

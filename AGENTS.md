@@ -8,7 +8,7 @@ this file is for working on it.
 ## Layout
 
 - `extension/manifest.json` – MV3, content script on `https://hsh.gomus.de/guide/*`, `storage` permission only.
-- `extension/content/content.js` – everything that runs on the page: grid model, writes, panel UI.
+- `extension/content/content.js` – everything that runs on the page: grid model, block view, writes, panel UI.
 - `extension/popup/` – settings (block length, preset times, working-hours window).
 - `tools/dev-inject.js` – loads the content script into an already-open page (see Verification).
 - `tools/make_icons.py` – regenerates `extension/icons/*.png`.
@@ -59,6 +59,17 @@ stubbed `chrome.storage`.
 - Write in parallel but modestly (8 concurrent); ~26 ms per request, so 126 cells ≈ 2–3 s.
 - Cells without the `clickable` class are in the past and silently ignore writes – filter them and
   report the count instead of pretending the block was applied.
+- Day headers: the `thead th` also contains a hidden dropdown ("Kernzeit auf verfügbar setzen"), so
+  `th.innerText` returns that menu too. Read `th.querySelector('small')` instead.
+
+## Views
+
+The default view replaces the site's table with `#tah-block-view`: one row per preset start time,
+one cell per day, each cell aggregating the 18 underlying five-minute cells (`summarize()` returns
+`available` / `unavailable` / `not_set` / `mixed` / `past`). Clicking a cell toggles the whole block
+between available and not set. The original table stays in the DOM (just `display: none`), so the
+grid model, writes, undo and Shift/Alt selection all keep working unchanged – any write must call
+`refreshBlockView()` afterwards, and `applyView()` is the single place that swaps the two tables.
 
 ## Data gotchas
 

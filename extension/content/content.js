@@ -12,6 +12,7 @@ const DEFAULTS = {
   hideOutside: true,
   dayFrom: '09:55',
   dayTo: '18:30',
+  view: 'blocks',
 };
 
 const state = {
@@ -121,7 +122,11 @@ async function pool(items, limit, worker) {
 function readGrid() {
   const t = gridTable();
   if (!t) return null;
-  const headers = [...t.querySelectorAll('thead th')].slice(1).map((th) => th.innerText.trim());
+  const headers = [...t.querySelectorAll('thead th')].slice(1).map((th) => {
+    // the th also holds a hidden dropdown with "Kernzeit ..." actions, so read the label only
+    const small = th.querySelector('small');
+    return (small ? small.textContent : th.innerText).trim().split('\n')[0].trim();
+  });
   const cols = headers.map(() => []);
   t.querySelectorAll('tbody tr').forEach((tr) => {
     tr.querySelectorAll('td.timestampbutton').forEach((td, i) => {
@@ -203,8 +208,8 @@ async function applyToCells(cells, target, label) {
     setBusy(false);
     return;
   }
-
   setBusy(false);
+  refreshBlockView();
 
   if (!changed.length) {
     status(`${label}: bereits aktuell (${clickable.length} Slots).`);
@@ -241,6 +246,7 @@ async function undoLast() {
     status(`Fehler beim Rückgängig: ${err.message}`);
   }
   setBusy(false);
+  refreshBlockView();
 }
 
 /* ---------- actions ---------- */
@@ -363,6 +369,122 @@ function applyRowVisibility() {
   }
 }
 
+/* ---------- block view ---------- */
+
+function addMinutes(hhmm, mins) {
+  const t = parseTime(hhmm);
+  if (!t) return '';
+  const total = (t.hh * 60 + t.mm + mins) % (24 * 60);
+  return `${String(Math.floor(total / 60)).padStart(2, '0')}:${String(total % 60).padStart(2, '0')}`;
+}
+
+function summarize(cells) {
+  const active = cells.filter((c) => c.classList.contains('clickable'));
+  if (!active.length) return { kind: 'past', counts: null, total: 0, booked: false };
+  const counts = { available: 0, unavailable: 0, not_set: 0 };
+  let booked = false;
+  for (const c of active) {
+    counts[stateOfClass(c.className)] += 1;
+    if (c.className.includes('with_bookings')) booked = true;
+  }
+  const total = active.length;
+  const kind =
+    counts.available === total
+      ? 'available'
+      : counts.unavailable === total
+        ? 'unavailable'
+        : counts.not_set === total
+          ? 'not_set'
+          : 'mixed';
+  return { kind, counts, total, booked };
+}
+
+function blockRows() {
+  const grid = readGrid();
+  if (!grid) return [];
+  const duration = Number(document.querySelector('#tah-duration')?.value) || state.settings.duration;
+  return state.settings.presets.map((time) => {
+    const t = parseTime(time);
+    const cells = grid.cols.map((col) => {
+      const start = t && findCellAtTime(col, t.hh, t.mm);
+      return start ? blockCells(col, Number(start.dataset.timestamp), duration) : [];
+    });
+    return { time, end: addMinutes(time, duration), cells };
+  });
+}
+
+async function toggleBlock(cells, label, kind) {
+  await applyToCells(cells, kind === 'available' ? 'not_set' : 'available', label);
+  refreshBlockView();
+}
+
+function blockCellNode(cells, label) {
+  const info = summarize(cells);
+  const td = el('td', { class: `tah-block-cell tah-block-${info.kind}` });
+
+  const icon = el('i', { class: `fa ${info.kind === 'available' ? 'fa-check-square-o' : 'fa-square-o'}` });
+  td.append(icon);
+
+  if (info.kind === 'mixed') td.append(el('small', { text: `${info.counts.available}/${info.total}` }));
+  if (info.booked) td.append(el('i', { class: 'fa fa-fw fa-bookmark tah-block-booked' }));
+
+  if (info.kind !== 'past') {
+    td.title = `${label} · ${info.counts.available}/${info.total} verfügbar`;
+    td.addEventListener('click', () => toggleBlock(cells, label, info.kind));
+  }
+  return td;
+}
+
+function renderBlockView() {
+  const host = document.querySelector('#tah-block-view');
+  const grid = readGrid();
+  if (!host || !grid) return;
+
+  const duration = Number(document.querySelector('#tah-duration')?.value) || state.settings.duration;
+  const from = parseTime(state.settings.dayFrom);
+  const to = parseTime(state.settings.dayTo);
+  const lo = from ? from.hh * 60 + from.mm : 0;
+  const hi = to ? to.hh * 60 + to.mm : 24 * 60;
+
+  const table = el('table', { class: 'tah-block-table' });
+  const headRow = el('tr');
+  headRow.append(el('th', { class: 'tah-block-label', text: 'Block' }));
+  for (const header of grid.headers) headRow.append(el('th', { text: header.replace(',', '') }));
+  table.append(el('thead', {}, [headRow]));
+
+  const tbody = el('tbody');
+  for (const row of blockRows()) {
+    const t = parseTime(row.time);
+    const startMin = t ? t.hh * 60 + t.mm : 0;
+    if (state.settings.hideOutside && (startMin + duration <= lo || startMin >= hi)) continue;
+    const tr = el('tr');
+    tr.append(el('th', { class: 'tah-block-label', text: `${row.time}–${row.end}` }));
+    row.cells.forEach((cells, i) => {
+      tr.append(blockCellNode(cells, `${row.time}–${row.end} ${grid.headers[i] || ''}`.trim()));
+    });
+    tbody.append(tr);
+  }
+  table.append(tbody);
+  host.replaceChildren(table);
+}
+
+function refreshBlockView() {
+  if (state.settings.view !== 'slots') renderBlockView();
+}
+
+function applyView() {
+  const grid = readGrid();
+  const host = document.querySelector('#tah-block-view');
+  if (!grid || !host) return;
+  const blocks = state.settings.view !== 'slots';
+  grid.t.style.display = blocks ? 'none' : '';
+  host.style.display = blocks ? '' : 'none';
+  document.querySelectorAll('.tah-seg').forEach((btn) => {
+    btn.classList.toggle('tah-seg-on', btn.dataset.view === (blocks ? 'blocks' : 'slots'));
+  });
+  if (blocks) renderBlockView();
+}
+
 /* ---------- UI ---------- */
 
 function el(tag, attrs = {}, children = []) {
@@ -446,6 +568,21 @@ function buildPanel(grid) {
   actions.append(makeAction('verfügbar', 'available', 'tah-yes'));
   actions.append(makeAction('nicht verfügbar', 'unavailable', 'tah-no'));
   actions.append(makeAction('zurücksetzen', 'not_set', 'tah-clear'));
+  panel.append(actions);
+
+  const viewRow = el('div', { class: 'tah-row' });
+  viewRow.append(el('span', { class: 'tah-label', text: 'Ansicht' }));
+  const segs = el('div', { class: 'tah-segs' });
+  for (const [value, label] of [['blocks', 'Blöcke'], ['slots', '5 Min']]) {
+    const seg = el('button', { class: `tah-seg${state.settings.view === value ? ' tah-seg-on' : ''}`, type: 'button', text: label, 'data-view': value });
+    seg.addEventListener('click', async () => {
+      state.settings.view = value;
+      await chrome.storage.sync.set({ view: value });
+      applyView();
+    });
+    segs.append(seg);
+  }
+  viewRow.append(segs);
 
   const hideLabel = el('label', { class: 'tah-field tah-toggle', title: 'Blendet die Zeiten außerhalb der Arbeitszeit aus' });
   const hideInput = el('input', { id: 'tah-hide', type: 'checkbox' });
@@ -454,10 +591,11 @@ function buildPanel(grid) {
     state.settings.hideOutside = hideInput.checked;
     await chrome.storage.sync.set({ hideOutside: hideInput.checked });
     applyRowVisibility();
+    refreshBlockView();
   });
   hideLabel.append(hideInput, el('span', { id: 'tah-hide-label', text: `nur ${state.settings.dayFrom}–${state.settings.dayTo}` }));
-  actions.append(hideLabel);
-  panel.append(actions);
+  viewRow.append(hideLabel);
+  panel.append(viewRow);
 
   panel.append(el('div', { class: 'tah-hint', text: 'Alt+Klick: Block ab Zelle · Shift+Klick: Bereich bis hierher (beides = verfügbar)' }));
   panel.append(el('div', { id: 'tah-status', class: 'tah-status' }));
@@ -485,9 +623,13 @@ function mountPanel() {
   if (row && row.parentElement) row.parentElement.insertBefore(panel, row);
   else grid.t.parentElement.insertBefore(panel, grid.t);
 
+  const host = el('div', { id: 'tah-block-view' });
+  grid.t.parentElement.insertBefore(host, grid.t);
+
   renderPresets();
   renderDays(grid);
   applyRowVisibility();
+  applyView();
 }
 
 /* ---------- interaction on the grid ---------- */
@@ -527,6 +669,7 @@ async function loadSettings() {
     hideOutside: stored.hideOutside !== false,
     dayFrom: /^\d{1,2}:\d{2}$/.test(stored.dayFrom) ? stored.dayFrom : DEFAULTS.dayFrom,
     dayTo: /^\d{1,2}:\d{2}$/.test(stored.dayTo) ? stored.dayTo : DEFAULTS.dayTo,
+    view: stored.view === 'slots' ? 'slots' : 'blocks',
   };
 }
 
@@ -543,6 +686,7 @@ chrome.storage.onChanged.addListener((changes, area) => {
     const hideLabel = document.querySelector('#tah-hide-label');
     if (hideLabel) hideLabel.textContent = `nur ${state.settings.dayFrom}–${state.settings.dayTo}`;
     applyRowVisibility();
+    applyView();
   });
 });
 

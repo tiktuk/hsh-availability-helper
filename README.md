@@ -16,7 +16,16 @@ and talks to the site with your existing login session.
 
 ## What it does
 
-A **Tour-Blöcke** panel appears above the "Meine Verfügbarkeiten" grid:
+By default the grid is replaced by a **block view**: one row per tour
+(`09:55–11:25`, `10:55–12:25`, …) instead of 288 five-minute rows. A cell shows
+the state of the whole block for that day — green check = every slot available,
+empty = nothing set, hatched with `6/18` = partially available, bookmark = a
+booking sits in the block, grey = in the past.
+
+Clicking a block cell marks the whole block available, clicking again clears
+it. **Ansicht → 5 Min** switches back to the site's original grid at any time.
+
+Above the grid sits a **Tour-Blöcke** panel:
 
 - **Block ab …** – one button per usual tour start time. One click marks the
   whole block (90 min by default) as *verfügbar* on every selected day.
@@ -33,6 +42,7 @@ A **Tour-Blöcke** panel appears above the "Meine Verfügbarkeiten" grid:
 - **Shift+Klick** on a cell – mark everything from the last plain-clicked cell
   to this one (a rectangle across days and rows).
 - **Rückgängig** – the last operation can be undone for 20 seconds.
+- **Ansicht** – switch between the block view and the site's 5-minute grid.
 - **nur 09:55–18:30** – hides the morning and evening rows that are never
   booked. On by default; the range is editable in the settings. Hidden rows
   can still be written to, they are just not shown.
