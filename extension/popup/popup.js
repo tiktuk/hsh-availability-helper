@@ -5,6 +5,7 @@ const DEFAULTS = {
   presets: ['09:55', '10:55', '11:55', '12:55', '13:55', '14:55', '16:35'],
   altClickBlock: true,
   hideOutside: true,
+  weekdaysOnly: true,
   dayFrom: '09:55',
   dayTo: '18:30',
 };

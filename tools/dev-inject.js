@@ -39,8 +39,8 @@ async (page) => {
     const invoice = document.querySelector('#tah-invoice-panel');
     return {
       mounted: Boolean(panel || invoice),
-      presets: [...document.querySelectorAll('.tah-preset')].map((b) => b.textContent),
-      days: [...document.querySelectorAll('.tah-day')].map((b) => b.innerText.replace(/\n/g, ' ')),
+      rows: [...document.querySelectorAll('.tah-block-time')].map((n) => n.textContent),
+      rowButtons: document.querySelectorAll('#tah-block-view tbody .tah-daybtn').length,
       panelTop: panel ? Math.round(panel.getBoundingClientRect().top) : null,
       parent: panel ? panel.parentElement.className : null,
       invoiceButton: document.querySelector('.tah-invoice-trigger')?.textContent.trim() || null,

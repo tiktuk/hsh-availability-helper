@@ -86,9 +86,22 @@ looks empty, which reads as "my availability is gone" (the user hit exactly that
 only for a block with no cells at all, i.e. a preset whose time is missing from the grid. Clicking
 a cell toggles the whole block between available and not set. The day headers carry a ✓/✗ pair (`dayHeadNode`) that sets the whole
 day – restricted to the working-hours range (`dayCells`) – and clears it again when the matching
-button is already active. The original table stays in the DOM (just `display: none`), so the
+button is already active; the row headers carry the same pair (`rowHeadNode`) for the other axis,
+setting that block on every day of the week — or only Monday to Friday while
+`chrome.storage.sync.weekdaysOnly` is on, which is the default (the **nur Mo–Fr (Zeilen ✓/✗)**
+checkbox in the panel switches it off). It is a row-button setting only: `dayHeadNode`, Alt+Klick,
+Shift+Klick and plain clicks must stay unaffected by it. The filter is by column weekday
+(`weekdayOf(dateKey)`), so the row button's own state also only looks at those days. The original table stays in the DOM (just `display: none`), so the
 grid model, writes, undo and Shift/Alt selection all keep working unchanged – any write must call
 `refreshBlockView()` afterwards, and `applyView()` is the single place that swaps the two tables.
+
+The panel (`buildPanel`) is deliberately thin: title, an `Ansicht` row, a `Filter` row with the
+`nur Mo–Fr (Zeilen ✓/✗)` and working-hours checkboxes (both left-aligned under the segmented
+control, not pushed to the edges), hint and status line. It has no start-time, duration or
+day-picker inputs — the block length and the row times are the settings
+(`chrome.storage.sync.duration` / `presets`), so there is exactly one place to change them (the
+popup). Do not reintroduce `#tah-duration` / `#tah-start` lookups in the view code; read
+`state.settings` instead.
 
 ## Calendar feed
 

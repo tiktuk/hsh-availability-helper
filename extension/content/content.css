@@ -43,28 +43,6 @@
   min-width: 48px;
 }
 
-#tah-panel .tah-presets {
-  display: flex;
-  gap: 4px;
-  flex-wrap: wrap;
-}
-
-#tah-panel .tah-preset {
-  min-width: 54px;
-  padding: 4px 8px;
-  border: 1px solid #1e4b8c;
-  background: #f4f7fb;
-  color: #1e4b8c;
-  border-radius: 3px;
-  font-weight: 600;
-  cursor: pointer;
-}
-
-#tah-panel .tah-preset:hover {
-  background: #1e4b8c;
-  color: #fff;
-}
-
 #tah-panel .tah-field {
   display: inline-flex;
   align-items: center;
@@ -72,89 +50,6 @@
   margin: 0;
   font-weight: normal;
   color: #555;
-}
-
-#tah-panel .tah-input {
-  height: 26px;
-  padding: 2px 6px;
-  border: 1px solid #ccc;
-  border-radius: 3px;
-  font-size: 12px;
-}
-
-#tah-panel .tah-input-num {
-  width: 56px;
-}
-
-#tah-panel .tah-days {
-  display: flex;
-  gap: 3px;
-  margin-left: auto;
-}
-
-#tah-panel .tah-day {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding: 2px 6px;
-  border: 1px solid #d6dbe3;
-  background: #f7f8fa;
-  color: #9aa3ad;
-  border-radius: 3px;
-  line-height: 1.1;
-  cursor: pointer;
-}
-
-#tah-panel .tah-day small {
-  font-size: 9px;
-  opacity: 0.8;
-}
-
-#tah-panel .tah-day-on {
-  border-color: #1e4b8c;
-  background: #e8eef7;
-  color: #1e4b8c;
-  font-weight: 600;
-}
-
-#tah-panel .tah-actions {
-  gap: 6px;
-}
-
-#tah-panel .tah-btn {
-  padding: 4px 10px;
-  border-radius: 3px;
-  border: 1px solid transparent;
-  font-weight: 600;
-  cursor: pointer;
-}
-
-#tah-panel .tah-yes {
-  background: #4caf50;
-  border-color: #3d9140;
-  color: #fff;
-}
-
-#tah-panel .tah-no {
-  background: #a1887f;
-  border-color: #8d6e63;
-  color: #fff;
-}
-
-#tah-panel .tah-clear {
-  background: #fff;
-  border-color: #ccc;
-  color: #555;
-}
-
-#tah-panel .tah-btn:hover:not(:disabled) {
-  filter: brightness(1.08);
-}
-
-#tah-panel .tah-btn:disabled,
-#tah-panel .tah-preset:disabled {
-  opacity: 0.5;
-  cursor: default;
 }
 
 #tah-panel .tah-segs {
@@ -183,18 +78,25 @@
   font-weight: 600;
 }
 
-#tah-panel .tah-toggle {
-  margin-left: auto;
+/* The two scope switches: same row, next to each other, aligned with the
+   Ansicht control above instead of pushed to opposite edges. The first one
+   keeps the row's 6 px gap so its box lines up with the segmented control. */
+#tah-panel .tah-filters .tah-check + .tah-check {
+  margin-left: 10px;
+}
+
+#tah-panel .tah-check {
   gap: 5px;
   cursor: pointer;
 }
 
-#tah-panel .tah-toggle input {
+#tah-panel .tah-check input,
+#tah-panel .tah-check span {
   margin: 0;
   cursor: pointer;
 }
 
-#tah-panel .tah-toggle span {
+#tah-panel .tah-check span {
   color: #777;
   font-size: 11px;
 }
@@ -239,6 +141,14 @@
   color: #444;
   white-space: nowrap;
   background: #fbfbfc;
+}
+
+/* The row header sets the block on every day at once, the way the day header
+   sets the whole day. */
+#tah-block-view .tah-block-tools {
+  display: inline-flex;
+  gap: 3px;
+  margin-left: 8px;
 }
 
 #tah-block-view .tah-day-head {

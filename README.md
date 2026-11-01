@@ -110,18 +110,18 @@ A week that is already over keeps showing its states — dimmed, and without the
 ✓/✗ buttons, because the site refuses writes there. Switching to **5 Min** shows
 the same colours, so the two views never disagree.
 
-Above the grid sits a **Tour-Blöcke** panel:
+Above the grid sits a small **Tour-Blöcke** panel; the work happens in the
+grid itself:
 
-- **Block ab …** – one button per usual tour start time. One click marks the
-  whole block (90 min by default) as *verfügbar* on every selected day.
-  Defaults are the local start times of the actual tours: 09:55,
-  10:55, 11:55, 12:55, 13:55, 14:55 and 16:35 (the last tour of the day).
-- **von / Dauer** – any start time (5-minute steps) and any length, for the
-  group tours that start at `:15` or `:35`.
-- **Mo … So** – pick which days the block applies to (all on by default).
-- **verfügbar / nicht verfügbar / zurücksetzen** – sets the block to a target
-  state instead of blindly toggling. Slots already in that state are left
-  alone, so clicking twice is harmless.
+- **✓ / ✗** next to a block's time in the left column – sets that block on
+  every day of the week at once, and clears it again when the matching button
+  is already active. The same pair sits in each day header, for the other
+  direction.
+- **nur Mo–Fr (Zeilen ✓/✗)** – on by default, and it only ever affects the
+  row buttons in the left column: on, they change Monday to Friday and leave
+  the weekend alone; off, they include Saturday and Sunday as well. The ✓/✗ in
+  the day headers, Alt+Klick and plain clicks ignore it and act on exactly the
+  day or cells you clicked.
 - **Alt+Klick** on a cell – mark the 90-minute block starting at that cell as
   verfügbar.
 - **Shift+Klick** on a cell – mark everything from the last plain-clicked cell
@@ -131,6 +131,11 @@ Above the grid sits a **Tour-Blöcke** panel:
 - **nur 09:55–18:30** – hides the morning and evening rows that are never
   booked. On by default; the range is editable in the settings. Hidden rows
   can still be written to, they are just not shown.
+
+The block length and the list of rows are the settings (toolbar icon): 90
+minutes and the usual tour start times 09:55, 10:55, 11:55, 12:55, 13:55,
+14:55 and 16:35 (the last tour of the day) by default. There are no start-time
+or duration fields on the page itself.
 
 Plain clicks behave exactly like before: a single 5-minute cell toggles
 through `nicht gesetzt → verfügbar → nicht verfügbar`.

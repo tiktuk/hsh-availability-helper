@@ -10,6 +10,7 @@ const DEFAULTS = {
   presets: ['09:55', '10:55', '11:55', '12:55', '13:55', '14:55', '16:35'],
   altClickBlock: true,
   hideOutside: true,
+  weekdaysOnly: true,
   dayFrom: '09:55',
   dayTo: '18:30',
   view: 'blocks',
@@ -23,7 +24,6 @@ const state = {
   busy: false,
   undo: null,
   undoTimeout: null,
-  days: [], // booleans per visible column
   calendar: { url: '', on: true, days: {}, fetchedAt: 0, error: '' },
   invoicePreview: null,
   invoiceToken: 0,
@@ -256,10 +256,6 @@ async function undoLast() {
 
 /* ---------- actions ---------- */
 
-function selectedColumns(grid) {
-  return grid.cols.filter((_, i) => state.days[i]);
-}
-
 function parseTime(value) {
   const m = /^(\d{1,2}):(\d{2})$/.exec((value || '').trim());
   if (!m) return null;
@@ -267,46 +263,6 @@ function parseTime(value) {
   const mm = Number(m[2]);
   if (hh > 23 || mm > 59) return null;
   return { hh, mm };
-}
-
-async function applyBlock(startTime, duration, target) {
-  const grid = readGrid();
-  if (!grid) return;
-  const time = parseTime(startTime);
-  if (!time) {
-    status('Ungültige Startzeit.');
-    return;
-  }
-  const cols = selectedColumns(grid);
-  if (!cols.length) {
-    status('Kein Tag ausgewählt.');
-    return;
-  }
-  const cells = [];
-  let missing = 0;
-  for (const col of cols) {
-    const start = findCellAtTime(col, time.hh, time.mm);
-    if (!start) {
-      missing += 1;
-      continue;
-    }
-    cells.push(...blockCells(col, Number(start.dataset.timestamp), duration));
-  }
-  if (!cells.length) {
-    status('Startzeit liegt außerhalb des Rasters.');
-    return;
-  }
-  const label = `${startTime} + ${duration} Min`;
-  if (missing && missing === cols.length) {
-    status('Startzeit liegt außerhalb des Rasters.');
-    return;
-  }
-  await applyToCells(cells, target, label);
-}
-
-function applyPreset(startTime) {
-  const duration = Number(document.querySelector('#tah-duration')?.value) || state.settings.duration;
-  applyBlock(startTime, duration, 'available');
 }
 
 function cellsBetween(a, b) {
@@ -336,7 +292,7 @@ function blockFromCell(cell) {
   const colIndex = cell.cellIndex - 1;
   const col = grid.cols[colIndex];
   if (!col) return [];
-  const duration = Number(document.querySelector('#tah-duration')?.value) || state.settings.duration;
+  const duration = state.settings.duration;
   return blockCells(col, Number(cell.dataset.timestamp), duration);
 }
 
@@ -412,7 +368,7 @@ function summarize(cells) {
 function blockRows() {
   const grid = readGrid();
   if (!grid) return [];
-  const duration = Number(document.querySelector('#tah-duration')?.value) || state.settings.duration;
+  const duration = state.settings.duration;
   return state.settings.presets.map((time) => {
     const t = parseTime(time);
     const cells = grid.cols.map((col) => {
@@ -501,12 +457,63 @@ function dayHeadNode(col, header, dateKey) {
   return th;
 }
 
+// The row header carries the same ✓/✗ pair as the day headers, the other way
+// round: one click sets this block on every day of the week — or only Monday to
+// Friday while `weekdaysOnly` is on, which is the default.
+function weekdayOf(dateKey) {
+  if (!dateKey) return 0;
+  const [y, m, d] = dateKey.split('-').map(Number);
+  return new Date(y, m - 1, d).getDay();
+}
+
+function rowHeadNode(row, label, keys) {
+  const th = el('th', { class: 'tah-block-label' });
+  th.append(el('span', { class: 'tah-block-time', text: label }));
+
+  const weekdaysOnly = state.settings.weekdaysOnly;
+  const picked = weekdaysOnly
+    ? row.cells.filter((_, i) => {
+        const day = weekdayOf(keys[i]);
+        return day >= 1 && day <= 5;
+      })
+    : row.cells;
+  const cells = picked.flat();
+  const scope = weekdaysOnly ? 'Mo–Fr' : 'ganze Woche';
+  const info = summarize(cells);
+  const tools = el('div', { class: 'tah-block-tools' });
+
+  const make = (kind, icon, title) => {
+    const btn = el('button', {
+      class: `tah-daybtn${info.kind === kind ? ' tah-daybtn-on' : ''} tah-daybtn-${kind}`,
+      type: 'button',
+      title: `${label}: ${scope} ${title}`,
+    });
+    btn.append(el('i', { class: `fa ${icon}` }));
+    if (info.readOnly) {
+      // Nothing in this block can be written any more; keep the state visible
+      // but do not offer a button that would only report "Vergangenheit".
+      btn.disabled = true;
+      btn.title = `${label}: ${scope} ${title} (Vergangenheit)`;
+    } else {
+      btn.addEventListener('click', () =>
+        applyToCells(cells, info.kind === kind ? 'not_set' : kind, `${label} ${scope} ${title}`)
+      );
+    }
+    return btn;
+  };
+
+  tools.append(make('available', 'fa-check', 'verfügbar'));
+  tools.append(make('unavailable', 'fa-times', 'nicht verfügbar'));
+  th.append(tools);
+  return th;
+}
+
 function renderBlockView() {
   const host = document.querySelector('#tah-block-view');
   const grid = readGrid();
   if (!host || !grid) return;
 
-  const duration = Number(document.querySelector('#tah-duration')?.value) || state.settings.duration;
+  const duration = state.settings.duration;
   const from = parseTime(state.settings.dayFrom);
   const to = parseTime(state.settings.dayTo);
   const lo = from ? from.hh * 60 + from.mm : 0;
@@ -525,10 +532,11 @@ function renderBlockView() {
     const startMin = t ? t.hh * 60 + t.mm : 0;
     if (state.settings.hideOutside && (startMin + duration <= lo || startMin >= hi)) continue;
     const tr = el('tr');
-    tr.append(el('th', { class: 'tah-block-label', text: `${row.time}–${row.end}` }));
+    const label = `${row.time}–${row.end}`;
+    tr.append(rowHeadNode(row, label, keys));
     row.cells.forEach((cells, i) => {
       const when = { dateKey: keys[i], startMin, endMin: startMin + duration };
-      tr.append(blockCellNode(cells, `${row.time}–${row.end} ${grid.headers[i] || ''}`.trim(), when));
+      tr.append(blockCellNode(cells, `${label} ${grid.headers[i] || ''}`.trim(), when));
     });
     tbody.append(tr);
   }
@@ -679,76 +687,13 @@ function el(tag, attrs = {}, children = []) {
   return node;
 }
 
-function renderPresets() {
-  const wrap = document.querySelector('#tah-presets');
-  if (!wrap) return;
-  wrap.innerHTML = '';
-  for (const preset of state.settings.presets) {
-    const btn = el('button', { class: 'tah-preset', type: 'button', text: preset, title: `${preset} · ${state.settings.duration} Min verfügbar` });
-    btn.addEventListener('click', () => applyPreset(preset));
-    wrap.append(btn);
-  }
-}
-
-function renderDays(grid) {
-  const wrap = document.querySelector('#tah-days');
-  if (!wrap) return;
-  wrap.innerHTML = '';
-  grid.headers.forEach((header, i) => {
-    const label = header.split(',')[0] || `Tag ${i + 1}`;
-    const date = header.split(',')[1]?.trim() || '';
-    const chip = el('button', { class: 'tah-day' + (state.days[i] ? ' tah-day-on' : ''), type: 'button', title: header });
-    chip.append(el('span', { text: label }));
-    if (date) chip.append(el('small', { text: date }));
-    chip.addEventListener('click', () => {
-      state.days[i] = !state.days[i];
-      chip.classList.toggle('tah-day-on', state.days[i]);
-    });
-    wrap.append(chip);
-  });
-}
-
-function buildPanel(grid) {
+function buildPanel() {
   const panel = el('div', { id: 'tah-panel' });
 
   const head = el('div', { class: 'tah-head' });
   head.append(el('strong', { text: 'Tour-Blöcke' }));
   head.append(el('span', { class: 'tah-sub', id: 'tah-sub', text: `Blöcke à ${state.settings.duration} Min` }));
   panel.append(head);
-
-  const presetsRow = el('div', { class: 'tah-row' });
-  presetsRow.append(el('span', { class: 'tah-label', text: 'Block ab' }));
-  const presets = el('div', { id: 'tah-presets' });
-  presetsRow.append(presets);
-  panel.append(presetsRow);
-
-  const customRow = el('div', { class: 'tah-row' });
-  const startInput = el('input', { id: 'tah-start', type: 'time', step: '300', value: state.settings.presets[0] || '09:55', class: 'tah-input' });
-  const durationInput = el('input', { id: 'tah-duration', type: 'number', min: '5', step: '5', value: String(state.settings.duration), class: 'tah-input tah-input-num' });
-  durationInput.addEventListener('change', () => {
-    const sub = document.querySelector('#tah-sub');
-    if (sub) sub.textContent = `Blöcke à ${durationInput.value} Min`;
-  });
-  customRow.append(el('label', { class: 'tah-field' }, ['von', startInput]));
-  customRow.append(el('label', { class: 'tah-field' }, ['Dauer', durationInput, 'Min']));
-  const days = el('div', { id: 'tah-days', class: 'tah-days' });
-  customRow.append(days);
-  panel.append(customRow);
-
-  const actions = el('div', { class: 'tah-row tah-actions' });
-  const makeAction = (label, target, cls) => {
-    const btn = el('button', { class: `tah-btn ${cls}`, type: 'button', text: label });
-    btn.addEventListener('click', () => {
-      const start = document.querySelector('#tah-start').value;
-      const dur = Number(document.querySelector('#tah-duration').value) || state.settings.duration;
-      applyBlock(start, dur, target);
-    });
-    return btn;
-  };
-  actions.append(makeAction('verfügbar', 'available', 'tah-yes'));
-  actions.append(makeAction('nicht verfügbar', 'unavailable', 'tah-no'));
-  actions.append(makeAction('zurücksetzen', 'not_set', 'tah-clear'));
-  panel.append(actions);
 
   const viewRow = el('div', { class: 'tah-row' });
   viewRow.append(el('span', { class: 'tah-label', text: 'Ansicht' }));
@@ -763,8 +708,28 @@ function buildPanel(grid) {
     segs.append(seg);
   }
   viewRow.append(segs);
+  panel.append(viewRow);
 
-  const hideLabel = el('label', { class: 'tah-field tah-toggle', title: 'Blendet die Zeiten außerhalb der Arbeitszeit aus' });
+  // Both switches narrow what a click touches, so they share a row of their own
+  // instead of being pushed apart to the edges.
+  const filterRow = el('div', { class: 'tah-row tah-filters' });
+  filterRow.append(el('span', { class: 'tah-label', text: 'Filter' }));
+
+  const weekdayLabel = el('label', {
+    class: 'tah-field tah-check',
+    title:
+      'Gilt nur für die ✓ / ✗ links neben der Uhrzeit (Zeilen-Buttons): an = nur Montag–Freitag, aus = auch Samstag und Sonntag. Die ✓ / ✗ in den Tagesköpfen und einzelne Zellen sind nicht betroffen.',
+  });
+  const weekdayInput = el('input', { id: 'tah-weekdays', type: 'checkbox' });
+  weekdayInput.checked = state.settings.weekdaysOnly;
+  weekdayInput.addEventListener('change', async () => {
+    state.settings.weekdaysOnly = weekdayInput.checked;
+    await chrome.storage.sync.set({ weekdaysOnly: weekdayInput.checked });
+    refreshBlockView();
+  });
+  weekdayLabel.append(weekdayInput, el('span', { text: 'nur Mo–Fr (Zeilen ✓/✗)' }));
+
+  const hideLabel = el('label', { class: 'tah-field tah-check', title: 'Blendet die Zeiten außerhalb der Arbeitszeit aus' });
   const hideInput = el('input', { id: 'tah-hide', type: 'checkbox' });
   hideInput.checked = state.settings.hideOutside;
   hideInput.addEventListener('change', async () => {
@@ -774,10 +739,16 @@ function buildPanel(grid) {
     refreshBlockView();
   });
   hideLabel.append(hideInput, el('span', { id: 'tah-hide-label', text: `nur ${state.settings.dayFrom}–${state.settings.dayTo}` }));
-  viewRow.append(hideLabel);
-  panel.append(viewRow);
+  filterRow.append(weekdayLabel, hideLabel);
+  panel.append(filterRow);
 
-  panel.append(el('div', { class: 'tah-hint', text: 'Alt+Klick: Block ab Zelle · Shift+Klick: Bereich bis hierher (beides = verfügbar)' }));
+  panel.append(
+    el('div', {
+      class: 'tah-hint',
+      text:
+        'Die ✓ / ✗ links neben der Uhrzeit setzen den ganzen Block auf einmal; „nur Mo–Fr“ betrifft nur diese Zeilen-Buttons · Alt+Klick: Block ab Zelle · Shift+Klick: Bereich bis hierher (beides = verfügbar)',
+    })
+  );
   panel.append(el('div', { id: 'tah-status', class: 'tah-status' }));
 
   return panel;
@@ -796,9 +767,8 @@ function mountPanel() {
   if (!grid || !grid.t) return;
 
   repairCells();
-  state.days = grid.headers.map(() => true);
 
-  const panel = buildPanel(grid);
+  const panel = buildPanel();
   const row = grid.t.closest('.row');
   if (row && row.parentElement) row.parentElement.insertBefore(panel, row);
   else grid.t.parentElement.insertBefore(panel, grid.t);
@@ -806,8 +776,6 @@ function mountPanel() {
   const host = el('div', { id: 'tah-block-view' });
   grid.t.parentElement.insertBefore(host, grid.t);
 
-  renderPresets();
-  renderDays(grid);
   applyRowVisibility();
   applyView();
   loadCalendar().then(refreshBlockView);
@@ -848,6 +816,7 @@ async function loadSettings() {
     presets: Array.isArray(stored.presets) && stored.presets.length ? stored.presets : DEFAULTS.presets,
     altClickBlock: stored.altClickBlock !== false,
     hideOutside: stored.hideOutside !== false,
+    weekdaysOnly: stored.weekdaysOnly !== false,
     dayFrom: /^\d{1,2}:\d{2}$/.test(stored.dayFrom) ? stored.dayFrom : DEFAULTS.dayFrom,
     dayTo: /^\d{1,2}:\d{2}$/.test(stored.dayTo) ? stored.dayTo : DEFAULTS.dayTo,
     view: stored.view === 'slots' ? 'slots' : 'blocks',
@@ -866,13 +835,12 @@ chrome.storage.onChanged.addListener((changes, area) => {
   }
   if (area !== 'sync') return;
   loadSettings().then(() => {
-    renderPresets();
-    const dur = document.querySelector('#tah-duration');
-    if (dur) dur.value = String(state.settings.duration);
     const sub = document.querySelector('#tah-sub');
     if (sub) sub.textContent = `Blöcke à ${state.settings.duration} Min`;
     const hide = document.querySelector('#tah-hide');
     if (hide) hide.checked = state.settings.hideOutside;
+    const weekdays = document.querySelector('#tah-weekdays');
+    if (weekdays) weekdays.checked = state.settings.weekdaysOnly;
     const hideLabel = document.querySelector('#tah-hide-label');
     if (hideLabel) hideLabel.textContent = `nur ${state.settings.dayFrom}–${state.settings.dayTo}`;
     applyRowVisibility();
