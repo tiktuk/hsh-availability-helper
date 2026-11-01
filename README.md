@@ -87,3 +87,10 @@ browser_run_code_unsafe({ filename: "tools/dev-inject.js" })
 ```
 
 `tools/make_icons.py` regenerates the PNG icons.
+
+## Licence
+
+MIT — see [LICENSE](LICENSE). The extension is written for the guide
+availability page of one specific booking system; nothing here is affiliated
+with or endorsed by that provider.
+
