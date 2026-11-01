@@ -75,9 +75,10 @@ grid model, writes, undo and Shift/Alt selection all keep working unchanged – 
 
 ## Data gotchas
 
-- `bue shift schedule.ics` stores **UTC** (`DTSTART:20261003T105500Z`), while the site and grid show
-  local time (that booking is "12:55 Uhr"). Convert with `Europe/Berlin` before deriving any time
-  from it. All times in the extension are local wall-clock time.
+- The site's calendar export stores **UTC** (`DTSTART:20261003T105500Z`), while the site and grid
+  show local time (that booking is "12:55 Uhr"). Convert with `Europe/Berlin` before deriving any
+  time from it. All times in the extension are local wall-clock time. The export itself is personal
+  data and is gitignored, not part of this repo.
 - The museum's tours are fixed in UTC, so their local start times shift by an hour at DST.
   Presets are static local times; that is a known limitation, not a bug.
 - The availability rules on the page are also authoritative: toggling a cell inside a rule's window

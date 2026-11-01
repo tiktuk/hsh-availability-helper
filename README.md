@@ -32,7 +32,7 @@ Above the grid sits a **Tour-Blöcke** panel:
 
 - **Block ab …** – one button per usual tour start time. One click marks the
   whole block (90 min by default) as *verfügbar* on every selected day.
-  Defaults are the local start times from `bue shift schedule.ics`: 09:55,
+  Defaults are the local start times of the actual tours: 09:55,
   10:55, 11:55, 12:55, 13:55, 14:55 and 16:35 (the last tour of the day).
 - **von / Dauer** – any start time (5-minute steps) and any length, for the
   group tours that start at `:15` or `:35`.
@@ -71,7 +71,7 @@ Note: the site's own bulk endpoint
 modal) currently answers `422` even when submitted from its own form, so this
 extension deliberately does not use it.
 
-Careful with times in `bue shift schedule.ics`: the file stores **UTC**
+Careful with the site's calendar export: it stores **UTC**
 (`DTSTART:20261003T105500Z`), while the site and the availability grid show
 local time (that booking is displayed as "12:55 Uhr"). All times in the
 extension are local wall-clock time, matching the grid.
