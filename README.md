@@ -4,6 +4,8 @@ Chrome extension for the guide availability grid on `hsh.gomus.de/guide/availabl
 Instead of ticking 18 five-minute cells for every tour, you mark a whole
 90-minute tour block with one click.
 
+![The block view: one row per tour, one cell per day, with per-day check and cross buttons](docs/screenshot.png)
+
 ## Install
 
 1. Open `chrome://extensions`
