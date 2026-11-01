@@ -69,6 +69,9 @@ with customer, date, time, duration, booking number and the Honorar stored on
 the booking, plus the sum. **Drucken / als PDF speichern** opens the browser's
 print dialog.
 
+A month without bookings says so in the panel and keeps the button disabled —
+there is nothing to bill yet.
+
 Past shifts are included even when the guide never confirmed them — they are
 still valid work. Cancelled bookings are not. If a booking has no customer
 (public tours), the Gruppenbezeichnung from the booking comment is used, and

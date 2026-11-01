@@ -113,6 +113,12 @@ Data comes from the bookings list, not the calendar grid:
 - The payload is written to `chrome.storage.local.invoice`; `background.js`
   opens `invoice/invoice.html`, which only reads it. It cannot be opened from
   the page directly (`chrome-extension://` URLs are blocked for web content).
+  The worker opens it with `sender.tab.windowId` and `active: true`; without
+  that Chrome picks the focused window and the tab shows up somewhere else.
+  A failed `tabs.create` is reported back and surfaced, never swallowed.
+- A month without bookings keeps **Rechnung erstellen** disabled and says so in
+  the panel, instead of failing after the click. The button is also disabled
+  while a preview loads, so a click cannot race the preview.
 
 ## Data gotchas
 

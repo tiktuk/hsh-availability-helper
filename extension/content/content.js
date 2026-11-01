@@ -899,6 +899,7 @@ function openInvoicePage() {
       chrome.runtime.sendMessage({ type: 'tah-open-invoice' }, (reply) => {
         const error = chrome.runtime.lastError;
         if (error) reject(new Error(error.message));
+        else if (!reply || !reply.ok) reject(new Error((reply && reply.error) || 'Tab konnte nicht geöffnet werden.'));
         else resolve(reply);
       });
     } catch (err) {
@@ -914,10 +915,16 @@ async function loadInvoiceRows(month) {
   return rows;
 }
 
+function setGenerateEnabled(enabled) {
+  const go = document.querySelector('#tah-invoice-go');
+  if (go) go.disabled = !enabled;
+}
+
 async function previewInvoice(month) {
   const token = ++state.invoiceToken;
   state.invoicePreview = null;
   renderInvoicePreview();
+  setGenerateEnabled(false);
   invoiceStatus('Lade Buchungen …');
   try {
     const rows = await loadInvoiceRows(month);
@@ -926,10 +933,12 @@ async function previewInvoice(month) {
     state.invoicePreview = rows.length
       ? { month, rows, total: rows.reduce((sum, row) => sum + row.price, 0), number }
       : null;
-    invoiceStatus(rows.length ? '' : 'Keine Buchungen in diesem Monat.');
     renderInvoicePreview();
+    setGenerateEnabled(rows.length > 0);
+    invoiceStatus(rows.length ? '' : `${monthLabel(month)}: keine Buchungen – es gibt nichts zu berechnen.`);
   } catch (err) {
     if (token !== state.invoiceToken) return;
+    setGenerateEnabled(true);
     invoiceStatus(`Fehler: ${err.message}`, { error: true });
   }
 }
@@ -957,7 +966,7 @@ async function createInvoice(month) {
   // Reuse what the preview just loaded, so the invoice matches what was on screen.
   const preview = state.invoicePreview?.month === month ? state.invoicePreview : null;
   const rows = preview ? preview.rows : await loadInvoiceRows(month);
-  if (!rows.length) throw new Error(`${monthLabel(month)}: keine Buchungen gefunden.`);
+  if (!rows.length) throw new Error(`${monthLabel(month)}: keine Buchungen – es gibt nichts zu berechnen.`);
 
   const invoice = {
     month,
@@ -1012,6 +1021,7 @@ function mountInvoice() {
       state.invoiceToken += 1;
       state.invoicePreview = null;
       renderInvoicePreview();
+      setGenerateEnabled(false);
       invoiceStatus('');
       return;
     }
