@@ -8,10 +8,31 @@ Instead of ticking 18 five-minute cells for every tour, you mark a whole
 
 ## Install
 
-1. Open `chrome://extensions`
-2. Turn on **Developer mode** (top right)
-3. Click **Load unpacked** and select the `extension/` folder in this repo
-4. Open (or reload) <https://hsh.gomus.de/guide/availables>
+The extension is not in the Chrome Web Store, so you load it yourself. That
+needs two things people usually miss: the code has to be **downloaded** first,
+and Chrome's extension page is only reachable through the **browser menu** —
+`chrome://extensions` is not a clickable link.
+
+1. **Get the code.** Open
+   <https://github.com/tiktuk/hsh-availability-helper>, click the green
+   **Code** button → **Download ZIP**, then unzip it somewhere you will keep it
+   (e.g. `Documents`). With git installed, `git clone
+   https://github.com/tiktuk/hsh-availability-helper.git` does the same.
+   Chrome loads the extension from that folder on every start, so don't delete
+   it afterwards.
+2. **Open the extensions page.** Click the **⋮** menu at the top right of
+   Chrome → **Extensions** → **Manage extensions**. (Typing `chrome://extensions`
+   into the address bar works as well, but the browser blocks that link when it
+   comes from a web page.)
+3. Turn on **Developer mode** (toggle at the top right of that page).
+4. Click **Load unpacked** and select the `extension` folder *inside* the
+   downloaded folder (`hsh-availability-helper/extension`), not the folder you
+   unzipped.
+5. Open (or reload) <https://hsh.gomus.de/guide/availables>. The grid should now
+   be the block view; the toolbar icon opens the settings.
+
+To update later, replace the folder with a fresh download and press the reload
+arrow on the extension card in `chrome://extensions`.
 
 The extension only runs on `hsh.gomus.de/guide/*`, needs no account of its own
 and talks to the site with your existing login session.
