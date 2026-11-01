@@ -126,6 +126,12 @@ table.rows tbody tr:nth-child(even) td {
   white-space: nowrap;
 }
 
+.col-customer .tag {
+  display: block;
+  color: var(--muted);
+  font-size: 11px;
+}
+
 table.rows tfoot th {
   border-top: 2px solid var(--accent);
   border-bottom: none;

@@ -806,8 +806,13 @@ function parseBookingRow(tr, group, month) {
   if (!id || monthIndex < 0) return null;
   const duration = /Dauer:\s*(\d+)\s*Minuten/.exec(text);
   const year = group ? group.year : Number(month.slice(0, 4));
+  // The status badge sits in the second cell, next to the group label. The row's
+  // own `canceled` class cannot be used: every row carries it, booked ones with
+  // an extra `no-costs`.
+  const status = (cells[1]?.textContent || '').trim();
   return {
     id,
+    cancelled: /storniert/i.test(status),
     tour: (cells[2]?.querySelector('strong')?.textContent || '').trim(),
     date: `${year}-${String(monthIndex + 1).padStart(2, '0')}-${String(Number(when[1])).padStart(2, '0')}`,
     time: `${when[3].padStart(2, '0')}:${when[4]}`,
@@ -824,9 +829,13 @@ async function fetchMonthBookings(month) {
     per_page: '200',
   });
   query.append('status[]', '20'); // Gebucht
-  // E-Mail wird versendet, Unbestätigt, Bestätigt, E-Mail-Versand fehlgeschlagen:
-  // past shifts belong on the invoice even when the guide never confirmed them.
-  for (const status of ['11', '15', '20', '500']) query.append('guide_status_types[]', status);
+  query.append('status[]', '25'); // Abgeschlossen
+  query.append('status[]', '50'); // Storniert – Absagen der Gruppe bringen ein Ausfallhonorar
+  // E-Mail wird versendet, Unbestätigt, Bestätigt, Guidewechsel/Storno,
+  // E-Mail-Versand fehlgeschlagen: past shifts belong on the invoice even when
+  // the guide never confirmed them. 30 is not optional: cancelled and completed
+  // bookings lose their guide assignment, so without it they never show up.
+  for (const status of ['11', '15', '20', '30', '500']) query.append('guide_status_types[]', status);
 
   const res = await fetch(`${BOOKINGS_URL}?${query}`, { credentials: 'include' });
   if (!res.ok) throw new Error(`Buchungsliste: HTTP ${res.status}`);
@@ -862,6 +871,8 @@ async function enrichBooking(row) {
   const comment = (/Gruppenbezeichnung:\s*([^\n]+)/.exec(commentText) || [])[1]?.trim() || '';
 
   row.price = abrechnung ? [...abrechnung.querySelectorAll('td.price')].reduce((sum, td) => sum + parseMoney(td.textContent), 0) : 0;
+  // "Honorar" for a tour that happened, "Ausfallhonorar" for a group cancellation.
+  row.fee = (abrechnung?.querySelector('td:not(.price)')?.textContent || '').trim();
   row.customer = customer || comment || row.tour || `Buchung ${row.id}`;
   return row;
 }
@@ -911,8 +922,17 @@ function openInvoicePage() {
 async function loadInvoiceRows(month) {
   const rows = await fetchMonthBookings(month);
   await pool(rows, CONCURRENCY, enrichBooking);
-  rows.sort((a, b) => `${a.date} ${a.time}`.localeCompare(`${b.date} ${b.time}`));
-  return rows;
+  // No amount on the Abrechnung means there is nothing to bill: the guide
+  // cancelled, or the guide was moved off the booking. A cancellation by the
+  // group carries an Ausfallhonorar and stays in.
+  const billable = rows.filter((row) => row.price > 0);
+  billable.sort((a, b) => `${a.date} ${a.time}`.localeCompare(`${b.date} ${b.time}`));
+  return { rows: billable, skipped: rows.length - billable.length };
+}
+
+function skippedNote(count) {
+  if (!count) return '';
+  return `${count} ${count === 1 ? 'Buchung' : 'Buchungen'} ohne Honorar nicht berechnet (Absage durch den Guide oder Guidewechsel).`;
 }
 
 function setGenerateEnabled(enabled) {
@@ -927,15 +947,19 @@ async function previewInvoice(month) {
   setGenerateEnabled(false);
   invoiceStatus('Lade Buchungen …');
   try {
-    const rows = await loadInvoiceRows(month);
+    const { rows, skipped } = await loadInvoiceRows(month);
     const number = await peekInvoiceNumber(month);
     if (token !== state.invoiceToken) return;
     state.invoicePreview = rows.length
-      ? { month, rows, total: rows.reduce((sum, row) => sum + row.price, 0), number }
+      ? { month, rows, skipped, total: rows.reduce((sum, row) => sum + row.price, 0), number }
       : null;
     renderInvoicePreview();
     setGenerateEnabled(rows.length > 0);
-    invoiceStatus(rows.length ? '' : `${monthLabel(month)}: keine Buchungen – es gibt nichts zu berechnen.`);
+    invoiceStatus(
+      rows.length
+        ? skippedNote(skipped)
+        : `${monthLabel(month)}: keine berechenbaren Buchungen – es gibt nichts zu berechnen. ${skippedNote(skipped)}`.trim()
+    );
   } catch (err) {
     if (token !== state.invoiceToken) return;
     setGenerateEnabled(true);
@@ -965,8 +989,8 @@ function renderInvoicePreview() {
 async function createInvoice(month) {
   // Reuse what the preview just loaded, so the invoice matches what was on screen.
   const preview = state.invoicePreview?.month === month ? state.invoicePreview : null;
-  const rows = preview ? preview.rows : await loadInvoiceRows(month);
-  if (!rows.length) throw new Error(`${monthLabel(month)}: keine Buchungen – es gibt nichts zu berechnen.`);
+  const rows = preview ? preview.rows : (await loadInvoiceRows(month)).rows;
+  if (!rows.length) throw new Error(`${monthLabel(month)}: keine berechenbaren Buchungen – es gibt nichts zu berechnen.`);
 
   const invoice = {
     month,
@@ -1043,7 +1067,7 @@ function mountInvoice() {
   previewBox.hidden = true;
   panel.append(label, go, el('span', { id: 'tah-invoice-status', class: 'tah-invoice-status' }));
   panel.append(previewBox);
-  panel.append(el('div', { class: 'tah-hint', text: 'Alle gebuchten Einsätze des Monats, auch vergangene und unbestätigte. Alt+R zeigt die Vorschau, nochmal Alt+R erstellt die Rechnung.' }));
+  panel.append(el('div', { class: 'tah-hint', text: 'Alle Einsätze des Monats, auch vergangene, unbestätigte und stornierte mit Ausfallhonorar. Alt+R zeigt die Vorschau, nochmal Alt+R erstellt die Rechnung.' }));
   title.append(panel);
 
   month.addEventListener('input', () => scheduleInvoicePreview());

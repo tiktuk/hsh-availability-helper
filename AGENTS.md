@@ -89,18 +89,31 @@ month links. Month navigation is a full page load, so re-mounting is enough.
 
 Data comes from the bookings list, not the calendar grid:
 
-- `GET /guide/bookings?start_at=<month>-01&end_at=<next month>-01&per_page=200&status[]=20&guide_status_types[]=11,15,20,500`
-  – `status[]=20` is Gebucht, the guide statuses include Unbestätigt, because
-  past shifts count even when the guide never confirmed them. 200 covers a
-  month (the site defaults to 25 per page).
+- `GET /guide/bookings?start_at=<month>-01&end_at=<next month>-01&per_page=200&status[]=20&status[]=25&status[]=50&guide_status_types[]=11&guide_status_types[]=15&guide_status_types[]=20&guide_status_types[]=30&guide_status_types[]=500`
+  – `status[]` 20/25/50 are Gebucht, Abgeschlossen and Storniert; the guide
+  statuses include Unbestätigt, because past shifts count even when the guide
+  never confirmed them. **30 (Guidewechsel/Storno) is mandatory**: cancelled and
+  completed bookings lose their guide assignment, so without it they are missing
+  from the response entirely — the filter defaults in the UI hide them the same
+  way. Note `guide_status_types` must be repeated per value; a comma-joined
+  single param returns nothing. 200 covers a month (the site defaults to 25).
 - Each `tr.booking-list-item` carries `id="booking<id>"`; the date group sits in
   the preceding `tr.sticky-top` ("1. November 2026"), the time and the duration
-  (105 minutes) in the "Datum: … Uhr / Dauer: …" cell.
+  (105 minutes) in the "Datum: … Uhr / Dauer: …" cell. The booking status badge
+  ("Gebucht" / "storniert") is the first badge of the second cell. Do not read the
+  row's `canceled` class: every row has it, booked ones additionally `no-costs`.
 - The price is **not** in the list. It is the `td.price` of the "Abrechnung" box
-  on `/guide/bookings/<id>` (Honorar, e.g. `97,50 €`), one detail request per
-  booking. The customer is the `dd` of the "Kundendaten" box; it is empty for
-  public tours, so fall back to the `Gruppenbezeichnung` in `.booking-comment`
-  (that block also holds other lines) and then to the tour title.
+  on `/guide/bookings/<id>` (Honorar `97,50 €`, Ausfallhonorar `49,00 €` for a
+  group cancellation), one detail request per booking. The customer is the `dd`
+  of the "Kundendaten" box; it is empty for public tours, so fall back to the
+  `Gruppenbezeichnung` in `.booking-comment` (that block also holds other lines)
+  and then to the tour title.
+- The Abrechnung box is also the billability test: it is empty when the guide
+  cancelled, or when the guide was moved off a booking that is still Gebucht
+  (a reassignment, e.g. `48577`). `loadInvoiceRows()` drops rows with no amount
+  and reports the count, so a group cancellation (49 €) stays in and an
+  assignment the guide did not do does not. Every future booking already carries
+  its Honorar, so a missing amount really means "not billable".
 - The panel previews the month (count, sum, number) as soon as it opens and
   whenever the month changes: `previewInvoice()` loads the rows and shows
   `peekInvoiceNumber()`, which must not claim a number. Only **Rechnung

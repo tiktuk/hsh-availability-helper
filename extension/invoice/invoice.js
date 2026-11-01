@@ -24,9 +24,16 @@ function renderRows(invoice) {
   const body = $('rows');
   body.replaceChildren();
   for (const row of invoice.rows) {
+    const customer = cell(row.customer, 'col-customer');
+    if (row.cancelled) {
+      const tag = document.createElement('small');
+      tag.className = 'tag';
+      tag.textContent = row.fee || 'storniert';
+      customer.append(tag);
+    }
     const tr = document.createElement('tr');
     tr.append(
-      cell(row.customer),
+      customer,
       cell(formatDate(row.date), 'col-date'),
       cell(row.time, 'col-time'),
       cell(row.duration ? `${row.duration} Min` : '–', 'col-duration'),

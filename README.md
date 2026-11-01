@@ -94,9 +94,12 @@ A month without bookings says so in the panel and keeps the button disabled —
 there is nothing to bill yet.
 
 Past shifts are included even when the guide never confirmed them — they are
-still valid work. Cancelled bookings are not. If a booking has no customer
-(public tours), the Gruppenbezeichnung from the booking comment is used, and
-failing that the tour title.
+still valid work. The same goes for **cancellations by the group**: they are
+billed at the Ausfallhonorar the booking carries (49 €). Cancellations by the
+guide, and bookings the guide was moved off, have no amount on their Abrechnung;
+they are left off the invoice and the panel says how many. If a booking has no
+customer (public tours), the Gruppenbezeichnung from the booking comment is used,
+and failing that the tour title.
 
 Invoice numbers continue from **Rechnungsnummer ab** in the settings, with an
 optional prefix (e.g. `RE-2026-`). Each month keeps the number it was first
