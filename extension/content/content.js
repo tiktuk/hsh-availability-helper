@@ -990,6 +990,39 @@ function invoiceStatus(text, { error = false } = {}) {
   node.classList.toggle('tah-error', error);
 }
 
+let invoiceTimer = null;
+
+function scheduleInvoicePreview(delay = 350) {
+  clearTimeout(invoiceTimer);
+  const month = document.querySelector('#tah-invoice-month');
+  if (!month) return;
+  const value = month.value;
+  if (!/^\d{4}-\d{2}$/.test(value)) {
+    state.invoiceToken += 1;
+    state.invoicePreview = null;
+    renderInvoicePreview();
+    setGenerateEnabled(false);
+    invoiceStatus('');
+    return;
+  }
+  invoiceTimer = setTimeout(() => previewInvoice(value), delay);
+}
+
+function toggleInvoicePanel(open) {
+  const panel = document.querySelector('#tah-invoice-panel');
+  if (!panel) return false;
+  panel.classList.toggle('tah-open', open);
+  if (!open) {
+    clearTimeout(invoiceTimer);
+    state.invoiceToken += 1;
+    return false;
+  }
+  document.querySelector('#tah-invoice-month').value = calendarMonth();
+  invoiceStatus('');
+  scheduleInvoicePreview(0);
+  return true;
+}
+
 function mountInvoice() {
   if (document.querySelector('#tah-invoice-panel')) return;
   const box = calendarBox();
@@ -997,7 +1030,7 @@ function mountInvoice() {
   if (!title) return;
 
   const group = el('div', { class: 'btn-group nobr' });
-  const trigger = el('button', { class: 'btn btn-default btn-xs tah-invoice-trigger', type: 'button', title: 'Monatsrechnung erstellen' });
+  const trigger = el('button', { class: 'btn btn-default btn-xs tah-invoice-trigger', type: 'button', title: 'Monatsrechnung erstellen (Alt+R)' });
   trigger.append(el('i', { class: 'fa fa-fw fa-file-text-o' }), el('span', { class: 'hidden-xs', text: ' Rechnung' }));
   group.append(trigger);
   (title.querySelector('.pull-right') || title).append(group);
@@ -1010,37 +1043,12 @@ function mountInvoice() {
   previewBox.hidden = true;
   panel.append(label, go, el('span', { id: 'tah-invoice-status', class: 'tah-invoice-status' }));
   panel.append(previewBox);
-  panel.append(el('div', { class: 'tah-hint', text: 'Alle gebuchten Einsätze des Monats, auch vergangene und unbestätigte. Öffnet eine druckbare Rechnung.' }));
+  panel.append(el('div', { class: 'tah-hint', text: 'Alle gebuchten Einsätze des Monats, auch vergangene und unbestätigte. Öffnet eine druckbare Rechnung (Alt+R).' }));
   title.append(panel);
 
-  let timer = null;
-  const schedulePreview = (delay = 350) => {
-    clearTimeout(timer);
-    const value = month.value;
-    if (!/^\d{4}-\d{2}$/.test(value)) {
-      state.invoiceToken += 1;
-      state.invoicePreview = null;
-      renderInvoicePreview();
-      setGenerateEnabled(false);
-      invoiceStatus('');
-      return;
-    }
-    timer = setTimeout(() => previewInvoice(value), delay);
-  };
-  month.addEventListener('input', () => schedulePreview());
-  month.addEventListener('change', () => schedulePreview());
-
-  trigger.addEventListener('click', () => {
-    const open = panel.classList.toggle('tah-open');
-    if (open) {
-      month.value = calendarMonth();
-      invoiceStatus('');
-      schedulePreview(0);
-    } else {
-      clearTimeout(timer);
-      state.invoiceToken += 1;
-    }
-  });
+  month.addEventListener('input', () => scheduleInvoicePreview());
+  month.addEventListener('change', () => scheduleInvoicePreview());
+  trigger.addEventListener('click', () => toggleInvoicePanel(!panel.classList.contains('tah-open')));
 
   go.addEventListener('click', async () => {
     const value = month.value;
@@ -1060,14 +1068,51 @@ function mountInvoice() {
   });
 }
 
+/* ---------- shortcuts ---------- */
+
+function navLinks() {
+  const nav = document.querySelector('nav[role=navigation]');
+  return nav ? [...nav.querySelectorAll('ul.nav > li > a[href]')].slice(0, 9) : [];
+}
+
+function annotateNav() {
+  navLinks().forEach((link, i) => {
+    if (link.dataset.tahShortcut) return;
+    link.dataset.tahShortcut = `Alt+${i + 1}`;
+    link.title = link.title ? `${link.title} (${link.dataset.tahShortcut})` : link.dataset.tahShortcut;
+  });
+}
+
+// Alt+1…9 follow the site's own sidebar order; Alt+R opens the invoice panel.
+function onShortcutKey(event) {
+  if (!event.altKey || event.ctrlKey || event.metaKey || event.shiftKey || event.repeat) return;
+
+  if (event.code === 'KeyR') {
+    if (toggleInvoicePanel(true)) event.preventDefault();
+    return;
+  }
+
+  const digit = /^Digit([1-9])$/.exec(event.code);
+  if (!digit) return;
+  const link = navLinks()[Number(digit[1]) - 1];
+  if (!link) return;
+  event.preventDefault();
+  link.click();
+}
+
+function installShortcuts() {
+  annotateNav();
+  document.addEventListener('keydown', onShortcutKey, true);
+}
+
 /* ---------- boot ---------- */
 
 (async function boot() {
   await loadSettings();
+  installShortcuts();
   if (gridTable()) {
     mountPanel();
     document.addEventListener('click', onGridClick, true);
-    return;
   }
   mountInvoice();
 })();

@@ -82,6 +82,18 @@ optional prefix (e.g. `RE-2026-`). Each month keeps the number it was first
 given, so opening a month again does not burn a number, and the number can be
 edited directly on the invoice.
 
+## Tastenkürzel
+
+On every guide page, hold **Alt**:
+
+| Keys | Action |
+| --- | --- |
+| `Alt+1` … `Alt+6` | jump to the sidebar entries in their order: Dashboard, Buchungsliste, Kalender, Verfügbarkeiten, Termingruppen, Helpdesk |
+| `Alt+R` | open the invoice panel on the calendar page, with the preview for the month on screen |
+
+The sidebar entries show their key in the tooltip. `Alt+R` does nothing on
+pages without an invoice panel, so it never swallows the key there.
+
 ## How it works
 
 The page is a Rails app that posts one request per cell to

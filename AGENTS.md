@@ -120,6 +120,19 @@ Data comes from the bookings list, not the calendar grid:
   the panel, instead of failing after the click. The button is also disabled
   while a preview loads, so a click cannot race the preview.
 
+## Shortcuts
+
+`installShortcuts()` runs on every guide page. `Alt+1…9` map to the site's own
+`nav[role=navigation] ul.nav > li > a` in DOM order, so the sidebar stays the
+single source of truth; the key is also written into each link's `title` so it
+is discoverable. `Alt+R` opens the invoice panel and returns `false` (without
+`preventDefault`) on pages that have none.
+
+Match on `event.code`, not `event.key`: with Alt held, macOS and German layouts
+produce `®` / `¡` instead of the letter or digit. Synthetic `KeyboardEvent`s
+dispatched from the page world do reach the content script's listener, which is
+how the shortcuts are tested through Playwright.
+
 ## Data gotchas
 
 - The site's calendar export stores **UTC** (`DTSTART:20261003T105500Z`), while the site and grid
