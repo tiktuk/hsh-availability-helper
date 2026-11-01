@@ -140,6 +140,10 @@ Data comes from the bookings list, not the calendar grid:
   from the response entirely — the filter defaults in the UI hide them the same
   way. Note `guide_status_types` must be repeated per value; a comma-joined
   single param returns nothing. 200 covers a month (the site defaults to 25).
+- `end_at` is **inclusive of that whole day**, so `<next month>-01` also returns the bookings of
+  the 1st of the following month. `fetchMonthBookings()` drops rows whose `date` does not start
+  with the requested month; without that, April 2026 billed the two 1 May tours that the May
+  invoice lists again.
 - Each `tr.booking-list-item` carries `id="booking<id>"`; the date group sits in
   the preceding `tr.sticky-top` ("1. November 2026"), the time and the duration
   (105 minutes) in the "Datum: … Uhr / Dauer: …" cell. The booking status badge

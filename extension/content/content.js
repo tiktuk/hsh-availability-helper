@@ -995,7 +995,9 @@ async function fetchMonthBookings(month) {
     }
     if (!tr.classList.contains('booking-list-item')) continue;
     const row = parseBookingRow(tr, group, month);
-    if (row) rows.push(row);
+    // end_at is inclusive of that whole day, so the first day of the next month
+    // comes along; those bookings belong to the next invoice.
+    if (row && row.date.startsWith(month)) rows.push(row);
   }
   return rows;
 }
