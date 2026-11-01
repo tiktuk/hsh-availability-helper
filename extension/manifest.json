@@ -19,6 +19,7 @@
   },
   "permissions": ["storage"],
   "host_permissions": ["https://hsh.gomus.de/*"],
+  "optional_host_permissions": ["*://*/*"],
   "options_ui": {
     "page": "options/options.html",
     "open_in_tab": true
@@ -29,7 +30,7 @@
   "content_scripts": [
     {
       "matches": ["https://hsh.gomus.de/guide/*"],
-      "js": ["content/content.js"],
+      "js": ["content/ical.js", "content/content.js"],
       "css": ["content/content.css"],
       "run_at": "document_idle"
     }

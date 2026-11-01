@@ -45,6 +45,9 @@ const signatureInput = document.querySelector('#signatureFile');
 const signaturePreview = document.querySelector('#signaturePreview');
 const signatureRemove = document.querySelector('#signatureRemove');
 const saved = document.querySelector('#saved');
+const icalUrlInput = document.querySelector('#icalUrl');
+const icalOnInput = document.querySelector('#icalOn');
+const icalStatus = document.querySelector('#icalStatus');
 
 function flash(text) {
   saved.textContent = text;
@@ -91,19 +94,94 @@ async function load() {
   }
   const { signature = '' } = await chrome.storage.local.get({ signature: '' });
   showSignature(signature);
+
+  const { icalUrl = '', icalOn = true } = await chrome.storage.local.get({ icalUrl: '', icalOn: true });
+  icalUrlInput.value = icalUrl;
+  icalOnInput.checked = icalOn !== false;
+}
+
+/* ---------- calendar feed ---------- */
+
+// The feed URL is user-supplied, so the host permission is requested at runtime
+// for exactly that origin (manifest: optional_host_permissions).
+function originPattern(url) {
+  let parsed;
+  try {
+    parsed = new URL(url);
+  } catch {
+    return null;
+  }
+  if (!/^https?:$/.test(parsed.protocol)) return null;
+  return `${parsed.protocol}//${parsed.hostname}/*`;
+}
+
+// Must be called synchronously from a click handler: chrome.permissions.request
+// only works inside a user gesture, and an await before it can consume that.
+async function ensureOrigin(url) {
+  const origin = originPattern(url);
+  if (!origin) throw new Error('Bitte eine vollständige http(s)-Adresse eintragen.');
+  if (!chrome.permissions?.request) return origin;
+  const granted = await chrome.permissions.request({ origins: [origin] });
+  if (!granted) throw new Error(`Ohne Erlaubnis für ${origin} lässt sich der Kalender nicht laden.`);
+  return origin;
+}
+
+function nextSevenDays() {
+  const days = [];
+  const cursor = new Date();
+  cursor.setHours(0, 0, 0, 0);
+  for (let i = 0; i < 7; i += 1) {
+    const date = new Date(cursor);
+    date.setDate(date.getDate() + i);
+    days.push(`${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`);
+  }
+  return days;
+}
+
+async function checkFeed() {
+  const url = icalUrlInput.value.trim();
+  if (!url) {
+    icalStatus.textContent = 'Noch keine Adresse eingetragen.';
+    return;
+  }
+  icalStatus.textContent = 'Lade …';
+  const permission = ensureOrigin(url).catch((err) => err);
+  try {
+    const result = await permission;
+    if (result instanceof Error) throw result;
+    const reply = await chrome.runtime.sendMessage({ type: 'tah-fetch-ical', url });
+    if (!reply || !reply.ok) throw new Error(reply?.error || 'Kalender nicht erreichbar.');
+    const events = TAH_ICAL.eventsByDay(reply.text, nextSevenDays());
+    const count = Object.values(events).reduce((sum, list) => sum + list.length, 0);
+    icalStatus.textContent = `Verbunden: ${count} ${count === 1 ? 'Eintrag' : 'Einträge'} in den nächsten 7 Tagen.`;
+  } catch (err) {
+    icalStatus.textContent = `Fehler: ${err.message}`;
+  }
 }
 
 async function save() {
+  const icalUrl = icalUrlInput.value.trim();
+  const icalOn = icalOnInput.checked;
+  const permission = icalUrl ? ensureOrigin(icalUrl).catch((err) => err) : Promise.resolve(null);
+
   const values = {};
   for (const id of FIELDS) {
     const input = inputs[id];
     values[id] = id === 'invoiceStart' ? Math.max(1, Number(input.value) || DEFAULTS.invoiceStart) : input.value.trim();
   }
   await chrome.storage.sync.set(values);
+
+  const result = await permission;
+  if (result instanceof Error) {
+    flash(`Nicht gespeichert: ${result.message}`);
+    return;
+  }
+  await chrome.storage.local.set({ icalUrl, icalOn });
   flash('Gespeichert.');
 }
 
 document.querySelector('#save').addEventListener('click', save);
+document.querySelector('#icalCheck').addEventListener('click', checkFeed);
 document.querySelector('#reset').addEventListener('click', async () => {
   await chrome.storage.sync.set(DEFAULTS);
   await chrome.storage.local.remove('signature');

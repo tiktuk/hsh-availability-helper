@@ -24,11 +24,14 @@ async (page) => {
     window.chrome.runtime = {
       sendMessage: (message, callback) => {
         window.__tahMessages = [...(window.__tahMessages || []), message];
-        if (callback) callback({ ok: true });
+        const reply = message?.type === 'tah-fetch-ical' ? { ok: true, text: window.__tahIcalText || '' } : { ok: true };
+        if (callback) callback(reply);
+        return Promise.resolve(reply);
       },
     };
   });
   await page.addStyleTag({ path: 'extension/content/content.css' });
+  await page.addScriptTag({ path: 'extension/content/ical.js' });
   await page.addScriptTag({ path: 'extension/content/content.js' });
   await page.waitForTimeout(500);
   return page.evaluate(() => {
@@ -42,6 +45,9 @@ async (page) => {
       parent: panel ? panel.parentElement.className : null,
       invoiceButton: document.querySelector('.tah-invoice-trigger')?.textContent.trim() || null,
       invoiceMonth: document.querySelector('#tah-invoice-month')?.value || null,
+      events: [...document.querySelectorAll('.tah-day-head')].map((th) => th.title).filter(Boolean),
+      conflicts: document.querySelectorAll('.tah-block-conflict').length,
+      calendarBar: document.querySelector('.tah-cal-bar')?.textContent || null,
     };
   });
 }

@@ -269,7 +269,7 @@
   cursor: pointer;
 }
 
-#tah-block-view .tah-daybtn:hover {
+#tah-block-view .tah-daybtn:not(:disabled):hover {
   border-color: #1e4b8c;
   color: #1e4b8c;
 }
@@ -292,9 +292,20 @@
   min-width: 64px;
 }
 
-#tah-block-view .tah-block-cell:hover {
+#tah-block-view .tah-block-cell:not(.tah-block-readonly):hover {
   outline: 2px solid #1e4b8c;
   outline-offset: -2px;
+}
+
+/* History: the state is shown, the block just cannot be written any more. */
+#tah-block-view .tah-block-cell.tah-block-readonly {
+  cursor: default;
+  opacity: 0.72;
+}
+
+#tah-block-view .tah-daybtn:disabled {
+  cursor: default;
+  opacity: 0.55;
 }
 
 #tah-block-view .tah-block-available {
@@ -333,6 +344,25 @@
   color: #1e4b8c;
 }
 
+/* Calendar feed: events live in the day-header tooltip, colliding blocks get a
+   stripe. Nothing is drawn into the grid itself. */
+#tah-block-view .tah-cal-bar {
+  display: flex;
+  align-items: baseline;
+  gap: 5px;
+  margin: 0 0 6px;
+  font-size: 11px;
+  color: #7b8590;
+}
+
+#tah-block-view .tah-cal-bar.tah-cal-error {
+  color: #b3261e;
+}
+
+#tah-block-view .tah-block-conflict {
+  box-shadow: inset 3px 0 0 #b3261e;
+}
+
 #tah-panel .tah-status {
   min-height: 16px;
   margin-top: 4px;
@@ -340,7 +370,8 @@
   color: #555;
 }
 
-#tah-panel .tah-link {
+#tah-panel .tah-link,
+#tah-block-view .tah-link {
   border: none;
   background: none;
   padding: 0;

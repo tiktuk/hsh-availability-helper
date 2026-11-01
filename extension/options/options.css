@@ -89,6 +89,20 @@ h2 {
   outline: none;
 }
 
+.field .inline {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 0;
+  font-size: 13px;
+  color: #222;
+}
+
+.field .inline input {
+  width: auto;
+  margin: 0;
+}
+
 .hint {
   margin: 4px 0 0;
   font-size: 11px;

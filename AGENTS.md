@@ -9,9 +9,10 @@ this file is for working on it.
 
 - `extension/manifest.json` – MV3, content script on `https://hsh.gomus.de/guide/*`, `storage` permission only.
 - `extension/content/content.js` – everything that runs on the page: grid model, block view, writes, panel UI, month invoice.
-- `extension/popup/` – settings (block length, preset times, working-hours window); links to the invoice settings.
-- `extension/options/` – invoice letterhead: sender, recipient, Steuernummer, bank, texts, signature, number range.
-- `extension/background.js` – service worker; its only job is opening the invoice tab (`chrome.tabs.create`).
+- `extension/content/ical.js` – the iCal reader for the calendar feed (see Calendar feed). Loaded before `content.js`, same isolated world, exposes one global `TAH_ICAL`.
+- `extension/popup/` – settings (block length, preset times, working-hours window); links to the settings page.
+- `extension/options/` – invoice letterhead (sender, recipient, Steuernummer, bank, texts, signature, number range) and the iCal feed address.
+- `extension/background.js` – service worker; opens the invoice tab (`chrome.tabs.create`) and fetches the calendar feed (see Calendar feed).
 - `extension/invoice/` – the printable invoice page (`chrome-extension://` URL): rows from `chrome.storage.local`, letter from the settings.
 - `tools/dev-inject.js` – loads the content script into an already-open page (see Verification).
 - `tools/make_icons.py` – regenerates `extension/icons/*.png`.
@@ -77,12 +78,50 @@ of those files is aggressive; call `Network.clearBrowserCache` before believing 
 
 The default view replaces the site's table with `#tah-block-view`: one row per preset start time,
 one cell per day, each cell aggregating the 18 underlying five-minute cells (`summarize()` returns
-`available` / `unavailable` / `not_set` / `mixed` / `past`). Clicking a cell toggles the whole block
-between available and not set. The day headers carry a ✓/✗ pair (`dayHeadNode`) that sets the whole
+`available` / `unavailable` / `not_set` / `mixed`, plus `readOnly` when none of those cells is
+`clickable` any more). A block that is entirely in the past is still drawn from its cells — the site
+colours them in the five-minute view too — but `readOnly` means no click handler, no day-head
+buttons and a dimmed cell. Do not go back to painting such a block `past`: a finished week then
+looks empty, which reads as "my availability is gone" (the user hit exactly that). `past` survives
+only for a block with no cells at all, i.e. a preset whose time is missing from the grid. Clicking
+a cell toggles the whole block between available and not set. The day headers carry a ✓/✗ pair (`dayHeadNode`) that sets the whole
 day – restricted to the working-hours range (`dayCells`) – and clears it again when the matching
 button is already active. The original table stays in the DOM (just `display: none`), so the
 grid model, writes, undo and Shift/Alt selection all keep working unchanged – any write must call
 `refreshBlockView()` afterwards, and `applyView()` is the single place that swaps the two tables.
+
+## Calendar feed
+
+The guide's own calendar (a personal `.ics` URL) is overlaid on the block view; the extension only
+ever reads it. Three pieces:
+
+- `content/ical.js` parses the feed: dependency-free RFC 5545 subset — unfolding, `VEVENT`,
+  `DTSTART`/`DTEND`/`DURATION`, `VALUE=DATE`, `TZID`/`Z`, `EXDATE`, `RECURRENCE-ID` overrides, and
+  `RRULE` with FREQ/INTERVAL/BYDAY/COUNT/UNTIL. `VTIMEZONE` is ignored because `Intl.DateTimeFormat`
+  gives the offset for any IANA zone; occurrences are generated in the feed's *wall clock* and
+  converted per instance, which is what keeps a 10:00 tour at 10:00 across a DST change. BYSETPOS
+  and BYMONTHDAY are not implemented. `TAH_ICAL.eventsByDay(text, dayKeys)` returns
+  `{ 'YYYY-MM-DD': [{ start, end, allDay, title }] }` — minutes from local midnight, multi-day timed
+  events clipped per day, all-day entries spanning 0–1440.
+- `background.js` fetches it (`tah-fetch-ical`). That hop is not optional: a content-script `fetch`
+  is a cross-origin request from `hsh.gomus.de` and dies on CORS, while a service-worker fetch with
+  a host permission does not. The origin is granted at runtime from the options page
+  (`chrome.permissions.request` + `optional_host_permissions` in the manifest) because the URL is
+  user-supplied — and the request must be the first thing the click handler does, since an `await`
+  before it can consume the user gesture.
+- `content.js` caches the text in `chrome.storage.local.icalCache` (15 min TTL) and renders.
+
+The URL is a secret (anyone holding it reads the calendar), so it sits in `chrome.storage.local`
+next to that cache, never in sync. Changes to `icalUrl` / `icalOn` arrive through `storage.onChanged`
+and re-render.
+
+Rendering is deliberately minimal — **no event text in the grid**. A block that overlaps a timed
+event gets `tah-block-conflict` (red inset stripe) and the event's time and title in the cell's
+`title`; the day header carries the whole day's list in its own `title`. All-day entries never
+stripe, because one "Urlaub" would mark the entire week, so the header tooltip is the only place
+they appear. The single visible extra is `tah-cal-bar` above the table (count, refresh, and the
+error with a retry button), which is how a broken feed announces itself instead of silently showing
+an empty week.
 
 ## Invoices
 

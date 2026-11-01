@@ -3,11 +3,11 @@
   <head>
     <meta charset="utf-8" />
     <link rel="stylesheet" href="options.css" />
-    <title>Rechnung einrichten</title>
+    <title>Einstellungen</title>
   </head>
   <body>
-    <h1>Rechnung einrichten</h1>
-    <p class="sub">Briefkopf, Texte und Unterschrift für die Monatsrechnung. Leere Felder erscheinen nicht auf der Rechnung.</p>
+    <h1>Einstellungen</h1>
+    <p class="sub">Briefkopf, Texte und Unterschrift für die Monatsrechnung, dazu der eigene Kalender für die Wochenansicht. Leere Felder erscheinen nicht auf der Rechnung.</p>
 
     <section>
       <h2>Rechnungssteller</h2>
@@ -115,12 +115,34 @@
       <p class="hint">Jeder Monat behält seine Nummer; auf der Rechnung selbst ist sie änderbar. Dreistellig, z. B. <code>2026-007</code>.</p>
     </section>
 
+    <section>
+      <h2>Kalender (iCal)</h2>
+      <label class="field">
+        <span>iCal-Adresse</span>
+        <input id="icalUrl" type="url" placeholder="https://calendar.google.com/calendar/ical/…/basic.ics" spellcheck="false" />
+      </label>
+      <label class="field">
+        <span>Anzeige</span>
+        <span class="inline"><input id="icalOn" type="checkbox" /> Termine in der Wochenansicht anzeigen</span>
+      </label>
+      <div class="actions">
+        <button id="icalCheck" class="secondary" type="button">Verbindung prüfen</button>
+      </div>
+      <p id="icalStatus" class="hint"></p>
+      <p class="hint">
+        Die Adresse ist ein Geheimnis: wer sie kennt, liest den Kalender. Sie bleibt auf diesem Rechner (nicht
+        synchronisiert) und wird nur zum Laden der Termine verwendet. Beim ersten Speichern fragt Chrome nach der
+        Erlaubnis für genau diesen Server.
+      </p>
+    </section>
+
     <div class="actions">
       <button id="save">Speichern</button>
       <button id="reset" class="secondary">Zurücksetzen</button>
     </div>
     <p id="saved" class="saved"></p>
 
+    <script src="../content/ical.js"></script>
     <script src="options.js"></script>
   </body>
 </html>

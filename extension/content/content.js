@@ -24,6 +24,7 @@ const state = {
   undo: null,
   undoTimeout: null,
   days: [], // booleans per visible column
+  calendar: { url: '', on: true, days: {}, fetchedAt: 0, error: '' },
   invoicePreview: null,
   invoiceToken: 0,
 };
@@ -384,14 +385,19 @@ function addMinutes(hhmm, mins) {
 
 function summarize(cells) {
   const active = cells.filter((c) => c.classList.contains('clickable'));
-  if (!active.length) return { kind: 'past', counts: null, total: 0, booked: false };
+  // A block that is over still has a state worth showing: the site colours
+  // those cells in the five-minute view too, it just refuses writes. Fall back
+  // to every cell and mark the result read-only instead of painting it grey.
+  const target = active.length ? active : cells;
+  if (!target.length) return { kind: 'past', counts: null, total: 0, booked: false, readOnly: true };
+
   const counts = { available: 0, unavailable: 0, not_set: 0 };
   let booked = false;
-  for (const c of active) {
+  for (const c of target) {
     counts[stateOfClass(c.className)] += 1;
     if (c.className.includes('with_bookings')) booked = true;
   }
-  const total = active.length;
+  const total = target.length;
   const kind =
     counts.available === total
       ? 'available'
@@ -400,7 +406,7 @@ function summarize(cells) {
         : counts.not_set === total
           ? 'not_set'
           : 'mixed';
-  return { kind, counts, total, booked };
+  return { kind, counts, total, booked, readOnly: active.length === 0 };
 }
 
 function blockRows() {
@@ -422,9 +428,9 @@ async function toggleBlock(cells, label, kind) {
   refreshBlockView();
 }
 
-function blockCellNode(cells, label) {
+function blockCellNode(cells, label, when) {
   const info = summarize(cells);
-  const td = el('td', { class: `tah-block-cell tah-block-${info.kind}` });
+  const td = el('td', { class: `tah-block-cell tah-block-${info.kind}${info.readOnly ? ' tah-block-readonly' : ''}` });
 
   const icon = el('i', { class: `fa ${info.kind === 'available' ? 'fa-check-square-o' : 'fa-square-o'}` });
   td.append(icon);
@@ -432,10 +438,17 @@ function blockCellNode(cells, label) {
   if (info.kind === 'mixed') td.append(el('small', { text: `${info.counts.available}/${info.total}` }));
   if (info.booked) td.append(el('i', { class: 'fa fa-fw fa-bookmark tah-block-booked' }));
 
-  if (info.kind !== 'past') {
-    td.title = `${label} · ${info.counts.available}/${info.total} verfügbar`;
-    td.addEventListener('click', () => toggleBlock(cells, label, info.kind));
+  const clashes = when ? conflictsOn(when.dateKey, when.startMin, when.endMin) : [];
+  if (clashes.length) {
+    td.classList.add('tah-block-conflict');
+    td.title = clashes.map((entry) => `Termin ${clockLabel(entry.start)}–${clockLabel(entry.end)}: ${entry.title}`).join('\n');
   }
+
+  if (info.counts) {
+    const own = `${label} · ${info.counts.available}/${info.total} verfügbar${info.readOnly ? ' (Vergangenheit)' : ''}`;
+    td.title = td.title ? `${own}\n${td.title}` : own;
+  }
+  if (!info.readOnly) td.addEventListener('click', () => toggleBlock(cells, label, info.kind));
   return td;
 }
 
@@ -450,7 +463,7 @@ function dayCells(col) {
   });
 }
 
-function dayHeadNode(col, header) {
+function dayHeadNode(col, header, dateKey) {
   const th = el('th', { class: 'tah-day-head' });
   th.append(el('span', { class: 'tah-day-name', text: header.replace(',', '') }));
 
@@ -466,15 +479,25 @@ function dayHeadNode(col, header) {
       title: `${header.replace(',', '')}: ${range} ${title}`,
     });
     btn.append(el('i', { class: `fa ${icon}` }));
-    btn.addEventListener('click', () =>
-      applyToCells(cells, info.kind === kind ? 'not_set' : kind, `${header.replace(',', '')} ${range} ${title}`)
-    );
+    if (info.readOnly) {
+      // Nothing in this day can be written any more; keep the state visible but
+      // do not offer a button that would only report "Vergangenheit".
+      btn.disabled = true;
+      btn.title = `${header.replace(',', '')}: ${range} (Vergangenheit)`;
+    } else {
+      btn.addEventListener('click', () =>
+        applyToCells(cells, info.kind === kind ? 'not_set' : kind, `${header.replace(',', '')} ${range} ${title}`)
+      );
+    }
     return btn;
   };
 
   tools.append(make('available', 'fa-check', 'verfügbar'));
   tools.append(make('unavailable', 'fa-times', 'nicht verfügbar'));
   th.append(tools);
+
+  const tip = dayTooltip(dateKey);
+  if (tip) th.title = tip;
   return th;
 }
 
@@ -490,9 +513,10 @@ function renderBlockView() {
   const hi = to ? to.hh * 60 + to.mm : 24 * 60;
 
   const table = el('table', { class: 'tah-block-table' });
+  const keys = columnKeys(grid);
   const headRow = el('tr');
   headRow.append(el('th', { class: 'tah-block-label', text: 'Block' }));
-  grid.headers.forEach((header, i) => headRow.append(dayHeadNode(grid.cols[i], header)));
+  grid.headers.forEach((header, i) => headRow.append(dayHeadNode(grid.cols[i], header, keys[i])));
   table.append(el('thead', {}, [headRow]));
 
   const tbody = el('tbody');
@@ -503,12 +527,15 @@ function renderBlockView() {
     const tr = el('tr');
     tr.append(el('th', { class: 'tah-block-label', text: `${row.time}–${row.end}` }));
     row.cells.forEach((cells, i) => {
-      tr.append(blockCellNode(cells, `${row.time}–${row.end} ${grid.headers[i] || ''}`.trim()));
+      const when = { dateKey: keys[i], startMin, endMin: startMin + duration };
+      tr.append(blockCellNode(cells, `${row.time}–${row.end} ${grid.headers[i] || ''}`.trim(), when));
     });
     tbody.append(tr);
   }
   table.append(tbody);
-  host.replaceChildren(table);
+
+  const bar = calendarBar();
+  host.replaceChildren(...(bar ? [bar, table] : [table]));
 }
 
 function refreshBlockView() {
@@ -526,6 +553,116 @@ function applyView() {
     btn.classList.toggle('tah-seg-on', btn.dataset.view === (blocks ? 'blocks' : 'slots'));
   });
   if (blocks) renderBlockView();
+}
+
+/* ---------- calendar feed ---------- */
+
+const CALENDAR_TTL = 15 * 60 * 1000;
+
+// The columns are dated by their cells, not by the header text, which the site
+// renders with its own abbreviations.
+function dateKeyOf(td) {
+  const d = new Date(Number(td.dataset.timestamp) * 1000);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
+function columnKeys(grid) {
+  return grid.cols.map((col) => (col[0] ? dateKeyOf(col[0]) : ''));
+}
+
+function clockLabel(minutes) {
+  const total = Math.round(minutes);
+  return `${String(Math.floor(total / 60)).padStart(2, '0')}:${String(total % 60).padStart(2, '0')}`;
+}
+
+function dayEvents(dateKey) {
+  return (dateKey && state.calendar.days[dateKey]) || [];
+}
+
+function conflictsOn(dateKey, startMin, endMin) {
+  // All-day entries stay out of this: one "Urlaub" would otherwise stripe the
+  // whole week. They live in the day header's tooltip instead.
+  return dayEvents(dateKey).filter((entry) => !entry.allDay && entry.start < endMin && entry.end > startMin);
+}
+
+// Events are not drawn — the day header only carries them in its tooltip, and a
+// colliding block gets a stripe. Keeps the grid readable at a glance.
+function dayTooltip(dateKey) {
+  return dayEvents(dateKey)
+    .map((entry) =>
+      entry.allDay ? `${entry.title} (ganztägig)` : `${clockLabel(entry.start)}–${clockLabel(entry.end)} ${entry.title}`
+    )
+    .join('\n');
+}
+
+function calendarBar() {
+  const calendar = state.calendar;
+  if (!calendar.url || !calendar.on) return null;
+
+  const bar = el('div', { class: 'tah-cal-bar' });
+  if (calendar.error) {
+    bar.classList.add('tah-cal-error');
+    bar.append(el('span', { text: `Kalender: ${calendar.error}` }));
+  } else {
+    const count = Object.values(calendar.days).reduce((sum, list) => sum + list.length, 0);
+    const when = calendar.fetchedAt
+      ? new Date(calendar.fetchedAt).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })
+      : '';
+    bar.append(
+      el('span', {
+        text: `Kalender: ${count} ${count === 1 ? 'Eintrag' : 'Einträge'} diese Woche${when ? ` · ${when}` : ''}`,
+      })
+    );
+  }
+
+  const refresh = el('button', { class: 'tah-link', type: 'button', text: calendar.error ? 'Erneut' : 'Aktualisieren' });
+  refresh.addEventListener('click', () => loadCalendar(true).then(refreshBlockView));
+  bar.append(' ', refresh);
+  return bar;
+}
+
+async function loadCalendarSettings() {
+  const stored = await chrome.storage.local.get({ icalUrl: '', icalOn: true });
+  state.calendar.url = typeof stored.icalUrl === 'string' ? stored.icalUrl.trim() : '';
+  state.calendar.on = stored.icalOn !== false;
+}
+
+async function feedText(url, force) {
+  const { icalCache } = await chrome.storage.local.get({ icalCache: null });
+  const cached = icalCache && icalCache.url === url && Date.now() - icalCache.fetchedAt < CALENDAR_TTL;
+  if (!force && cached) return { text: icalCache.text, fetchedAt: icalCache.fetchedAt };
+
+  // The worker fetches, not this script: a feed on another host is a
+  // cross-origin request from the page's origin and would hit CORS here.
+  const reply = await chrome.runtime.sendMessage({ type: 'tah-fetch-ical', url });
+  if (!reply || !reply.ok) throw new Error(reply?.error || 'Kalender nicht erreichbar.');
+  const fetchedAt = Date.now();
+  await chrome.storage.local.set({ icalCache: { url, text: reply.text, fetchedAt } });
+  return { text: reply.text, fetchedAt };
+}
+
+async function loadCalendar(force = false) {
+  const calendar = state.calendar;
+  const grid = readGrid();
+  if (!calendar.url || !calendar.on || !grid) {
+    calendar.days = {};
+    calendar.error = '';
+    return;
+  }
+  if (typeof TAH_ICAL === 'undefined') {
+    calendar.error = 'Kalender-Parser fehlt.';
+    return;
+  }
+
+  try {
+    const { text, fetchedAt } = await feedText(calendar.url, force);
+    calendar.days = TAH_ICAL.eventsByDay(text, [...new Set(columnKeys(grid).filter(Boolean))]);
+    calendar.fetchedAt = fetchedAt;
+    calendar.error = '';
+  } catch (err) {
+    calendar.days = {};
+    calendar.error = err.message;
+  }
 }
 
 /* ---------- UI ---------- */
@@ -673,6 +810,7 @@ function mountPanel() {
   renderDays(grid);
   applyRowVisibility();
   applyView();
+  loadCalendar().then(refreshBlockView);
 }
 
 /* ---------- interaction on the grid ---------- */
@@ -719,6 +857,13 @@ async function loadSettings() {
 }
 
 chrome.storage.onChanged.addListener((changes, area) => {
+  // The feed URL is a secret and lives in local storage, next to its cache.
+  if (area === 'local' && (changes.icalUrl || changes.icalOn)) {
+    loadCalendarSettings()
+      .then(() => loadCalendar(true))
+      .then(() => refreshBlockView());
+    return;
+  }
   if (area !== 'sync') return;
   loadSettings().then(() => {
     renderPresets();
@@ -1178,6 +1323,7 @@ function installShortcuts() {
 
 (async function boot() {
   await loadSettings();
+  await loadCalendarSettings();
   installShortcuts();
   if (gridTable()) {
     mountPanel();

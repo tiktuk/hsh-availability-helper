@@ -86,9 +86,9 @@ unzip it and let it replace the old folder — or delete the old folder first an
 unzip to the same place. Keep the path identical, since that is where Chrome
 loads the extension from. Then reload the extension as above.
 
-Your settings — letterhead, bank details, signature, invoice numbers — live in
-Chrome's extension storage, not in that folder, so updating either way keeps
-them.
+Your settings — letterhead, bank details, signature, invoice numbers, the
+calendar address — live in Chrome's extension storage, not in that folder, so
+updating either way keeps them.
 
 ## What it does
 
@@ -103,6 +103,10 @@ it. Each day column also has a **✓ / ✗** pair in the header that marks that
 whole day available or unavailable (over the working-hours range, 09:55–18:30
 by default); pressing the highlighted button again clears the day.
 **Ansicht → 5 Min** switches back to the site's original grid at any time.
+
+A week that is already over keeps showing its states — dimmed, and without the
+✓/✗ buttons, because the site refuses writes there. Switching to **5 Min** shows
+the same colours, so the two views never disagree.
 
 Above the grid sits a **Tour-Blöcke** panel:
 
@@ -131,7 +135,41 @@ through `nicht gesetzt → verfügbar → nicht verfügbar`.
 
 The toolbar icon opens the settings: block length, the list of quick start
 times, whether Alt+Klick is active and the visible working-hours range. From
-there, **Rechnung einrichten …** opens the invoice settings.
+there, **Rechnung & Kalender …** opens the settings page for the invoice and for
+the calendar feed described below.
+
+## Kalender
+
+Your own calendar can show up in the week view, so you can book availability
+around your appointments instead of keeping them in your head. Paste the secret
+**iCal address** of your calendar into the settings (**Rechnung & Kalender …** →
+*Kalender (iCal)*). Blocks that collide with an appointment then get a red stripe
+on the left; the appointment's time and title are in the tooltip of that cell,
+and the day header's tooltip lists everything on that day — which is also where
+all-day entries like "Urlaub" show up, since they have no time to stripe.
+
+Where the address comes from:
+
+- **Google Calendar:** Settings → the calendar → **Integrate calendar** → *Secret
+  address in iCal format*.
+- **Apple/iCloud:** share the calendar publicly, copy the `webcal://` link and
+  change `webcal://` to `https://`.
+- **Outlook:** Settings → Calendar → Shared calendars → **Publish a calendar**.
+
+The address is a secret — anyone who has it can read the calendar. It stays in
+this browser (local storage, not synced) and is only used to load the events.
+Chrome asks once for permission to read from that one server and nothing else;
+**Verbindung prüfen** shows how many events the feed yields for the next week
+before you rely on it.
+
+The feed is fetched at most every 15 minutes; **Aktualisieren** above the grid
+forces it. A failed load says so in red with an **Erneut** button instead of
+quietly showing an empty week.
+
+Recurring events are expanded (daily/weekly/monthly rules, exceptions, moved
+occurrences), feed times are converted from their own time zone to local time,
+and all-day entries stay in the day-header tooltip only — a single "Urlaub"
+should not grey out the whole week. The feed is read, never written.
 
 ## Monatsrechnung
 
@@ -147,8 +185,8 @@ two assurance clauses, bank details, closing line and your signature image, then
 one row per booking (Buchung, Datum, von, bis, Angebotstitel, Kunde, Honorar)
 with the sum on its own page.
 
-Everything in that letter comes from **Rechnung einrichten** (popup → the
-button): name and address, recipient, Steuernummer, bank details, all texts, and
+Everything in that letter comes from the settings page (popup → **Rechnung &
+Kalender …**): name and address, recipient, Steuernummer, bank details, all texts, and
 the signature image. Empty fields simply do not appear, so a letter without a
 Steuernummer or bank details still prints. The fields carry example text as
 placeholders — nothing is prefilled with real data, except the recipient, which
