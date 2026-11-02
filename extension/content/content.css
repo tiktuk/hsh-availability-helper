@@ -400,3 +400,48 @@
   color: #999;
   font-size: 11px;
 }
+
+/* The sidebar is an icon rail (`body.mini-navbar`) and the site hides the
+   labels with it. Show them as small captions under the icons instead: the
+   icons alone are not distinguishable. Only while `navLabels` is on — the
+   class comes from `applyNavLabels()`. The rail has to grow for the longest
+   label ("Verfügbarkeiten", ~82 px at 10 px), and the page margin follows it.
+   Guarded against the modes where the sidebar is wide and prints the labels
+   inline; those must stay untouched. */
+body.mini-navbar.tah-nav-labels:not(.fixed-sidebar):not(.canvas-menu) {
+  --tah-rail: 92px;
+}
+
+body.mini-navbar.tah-nav-labels:not(.fixed-sidebar):not(.canvas-menu) nav[role=navigation].navbar-static-side {
+  width: var(--tah-rail);
+}
+
+body.mini-navbar.tah-nav-labels:not(.fixed-sidebar):not(.canvas-menu) #page-wrapper,
+body.mini-navbar.tah-nav-labels:not(.fixed-sidebar):not(.canvas-menu) .footer.fixed {
+  margin-left: var(--tah-rail);
+}
+
+body.mini-navbar.tah-nav-labels:not(.fixed-sidebar):not(.canvas-menu) nav[role=navigation] ul.nav > li.menu > a {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 9px 2px;
+  line-height: 1.1;
+}
+
+body.mini-navbar.tah-nav-labels:not(.fixed-sidebar):not(.canvas-menu) nav[role=navigation] ul.nav > li.menu > a > i {
+  margin: 0;
+  font-size: 18px;
+  line-height: 1;
+}
+
+body.mini-navbar.tah-nav-labels:not(.fixed-sidebar):not(.canvas-menu) nav[role=navigation] ul.nav > li.menu > a > .nav-label {
+  display: block;
+  max-width: 100%;
+  font-size: 10px;
+  line-height: 1.15;
+  text-align: center;
+  /* Trims the font's leading, so the gap above the label is the flex gap. */
+  text-box: trim-both cap alphabetic;
+}

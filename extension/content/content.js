@@ -11,6 +11,7 @@ const DEFAULTS = {
   altClickBlock: true,
   hideOutside: true,
   weekdaysOnly: true,
+  navLabels: true,
   dayFrom: '09:55',
   dayTo: '18:30',
   view: 'blocks',
@@ -817,12 +818,20 @@ async function loadSettings() {
     altClickBlock: stored.altClickBlock !== false,
     hideOutside: stored.hideOutside !== false,
     weekdaysOnly: stored.weekdaysOnly !== false,
+    navLabels: stored.navLabels !== false,
     dayFrom: /^\d{1,2}:\d{2}$/.test(stored.dayFrom) ? stored.dayFrom : DEFAULTS.dayFrom,
     dayTo: /^\d{1,2}:\d{2}$/.test(stored.dayTo) ? stored.dayTo : DEFAULTS.dayTo,
     view: stored.view === 'slots' ? 'slots' : 'blocks',
     invoiceStart: Math.max(1, Number(stored.invoiceStart) || DEFAULTS.invoiceStart),
     invoicePrefix: typeof stored.invoicePrefix === 'string' ? stored.invoicePrefix : DEFAULTS.invoicePrefix,
   };
+}
+
+// The site collapses the sidebar to an icon rail and hides the labels with it.
+// The stylesheet prints them under the icons, but only while this class is set
+// (the popup can switch it off).
+function applyNavLabels() {
+  document.body.classList.toggle('tah-nav-labels', state.settings.navLabels);
 }
 
 chrome.storage.onChanged.addListener((changes, area) => {
@@ -835,6 +844,7 @@ chrome.storage.onChanged.addListener((changes, area) => {
   }
   if (area !== 'sync') return;
   loadSettings().then(() => {
+    applyNavLabels();
     const sub = document.querySelector('#tah-sub');
     if (sub) sub.textContent = `Blöcke à ${state.settings.duration} Min`;
     const hide = document.querySelector('#tah-hide');
@@ -1294,6 +1304,7 @@ function installShortcuts() {
 (async function boot() {
   await loadSettings();
   await loadCalendarSettings();
+  applyNavLabels();
   installShortcuts();
   if (gridTable()) {
     mountPanel();

@@ -230,6 +230,23 @@ produce `®` / `¡` instead of the letter or digit. Synthetic `KeyboardEvent`s
 dispatched from the page world do reach the content script's listener, which is
 how the shortcuts are tested through Playwright.
 
+## Sidebar labels
+
+The sidebar is an icon rail (`body.mini-navbar`) and the site hides `.nav-label`
+with it, which leaves six icons nobody can tell apart. The extension prints the
+labels as 10 px captions under the icons. The rules are gated on
+`body.tah-nav-labels`, set by `applyNavLabels()` from
+`chrome.storage.sync.navLabels` (popup checkbox, default on) — without the class
+the rail looks exactly like the site's.
+
+The rail grows from 70 px to 92 px, because the longest label
+("Verfügbarkeiten") is ~82 px at that size; `#page-wrapper`'s margin and the
+fixed footer have to follow, or the page sits underneath it. The overrides are
+guarded with `:not(.fixed-sidebar):not(.canvas-menu)`: in those modes the
+sidebar is wide and prints the labels inline, and the flex column would break
+them. `text-box: trim-both cap alphabetic` removes the font's leading so the gap
+under an icon is the flex gap; it is a progressive enhancement (Chrome 133+).
+
 ## Data gotchas
 
 - The site's calendar export stores **UTC** (`DTSTART:20261003T105500Z`), while the site and grid

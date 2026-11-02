@@ -140,10 +140,17 @@ or duration fields on the page itself.
 Plain clicks behave exactly like before: a single 5-minute cell toggles
 through `nicht gesetzt → verfügbar → nicht verfügbar`.
 
+Outside the grid, the site's sidebar is a narrow icon rail whose entry names
+only appear on hover. The extension prints those names under the icons
+(Dashboard, Buchungsliste, Kalender, …) and widens the rail just enough for the
+longest one, so the entries can be told apart without memorising the icons.
+**Beschriftungen unter den Symbolen der Seitenleiste** in the settings switches
+that off again.
+
 The toolbar icon opens the settings: block length, the list of quick start
-times, whether Alt+Klick is active and the visible working-hours range. From
-there, **Rechnung & Kalender …** opens the settings page for the invoice and for
-the calendar feed described below.
+times, whether Alt+Klick is active, the visible working-hours range, and the
+sidebar labels. From there, **Rechnung & Kalender …** opens the settings page
+for the invoice and for the calendar feed described below.
 
 ## Kalender
 

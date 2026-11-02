@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "HSH-Helper",
   "version": "1.0.0",
-  "description": "Fill availability in whole tour blocks, overlay your own iCal calendar, and print the monthly invoice.",
+  "description": "Fill availability in whole tour blocks, label the icon sidebar, overlay your own iCal calendar, and print the monthly invoice.",
   "minimum_chrome_version": "116",
   "icons": {
     "16": "icons/icon-16.png",

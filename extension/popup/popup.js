@@ -6,6 +6,7 @@ const DEFAULTS = {
   altClickBlock: true,
   hideOutside: true,
   weekdaysOnly: true,
+  navLabels: true,
   dayFrom: '09:55',
   dayTo: '18:30',
 };
@@ -16,6 +17,7 @@ const altClickInput = document.querySelector('#altClick');
 const hideOutsideInput = document.querySelector('#hideOutside');
 const dayFromInput = document.querySelector('#dayFrom');
 const dayToInput = document.querySelector('#dayTo');
+const navLabelsInput = document.querySelector('#navLabels');
 const saved = document.querySelector('#saved');
 
 function parsePresets(value) {
@@ -38,6 +40,7 @@ async function load() {
   hideOutsideInput.checked = stored.hideOutside !== false;
   dayFromInput.value = stored.dayFrom || DEFAULTS.dayFrom;
   dayToInput.value = stored.dayTo || DEFAULTS.dayTo;
+  navLabelsInput.checked = stored.navLabels !== false;
 }
 
 async function save() {
@@ -49,6 +52,7 @@ async function save() {
     hideOutside: hideOutsideInput.checked,
     dayFrom: dayFromInput.value || DEFAULTS.dayFrom,
     dayTo: dayToInput.value || DEFAULTS.dayTo,
+    navLabels: navLabelsInput.checked,
   });
   saved.textContent = 'Gespeichert.';
   setTimeout(() => {
