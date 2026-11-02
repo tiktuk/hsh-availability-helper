@@ -1,0 +1,416 @@
+/* Statistics tab. It is a fixed view over the page's content area: the site's
+   sidebar and top bar stay where they are, so the tab still feels like part of
+   the booking system. Everything is scoped to #tah-stats — the site's Bootstrap
+   rules must not leak in, and nothing here may leak out. */
+
+#tah-stats,
+#tah-stats * {
+  box-sizing: border-box;
+}
+
+#tah-stats {
+  position: fixed;
+  right: 0;
+  bottom: 0;
+  z-index: 1050;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  background: #f4f6f9;
+  color: #333;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+body.tah-stats-open {
+  overflow: hidden;
+}
+
+#tah-stats .tah-stats-head {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px 16px;
+  padding: 12px 22px;
+  background: #fff;
+  border-bottom: 1px solid #e3e7ec;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
+}
+
+#tah-stats .tah-stats-title {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  min-width: 0;
+}
+
+#tah-stats h2 {
+  margin: 0;
+  padding: 0;
+  border: none;
+  color: #1e4b8c;
+  font-size: 18px;
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+#tah-stats .tah-stats-sub {
+  color: #9aa3ad;
+  font-size: 11.5px;
+}
+
+#tah-stats .tah-stats-tools {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+#tah-stats .tah-segs {
+  display: inline-flex;
+  overflow: hidden;
+  border: 1px solid #d6dbe3;
+  border-radius: 3px;
+}
+
+#tah-stats .tah-seg {
+  padding: 4px 12px;
+  border: none;
+  background: #fff;
+  color: #777;
+  font-size: 12px;
+  line-height: 1.4;
+  cursor: pointer;
+}
+
+#tah-stats .tah-seg + .tah-seg {
+  border-left: 1px solid #d6dbe3;
+}
+
+#tah-stats .tah-seg:hover {
+  color: #1e4b8c;
+}
+
+#tah-stats .tah-seg-on {
+  background: #1e4b8c;
+  color: #fff;
+  font-weight: 600;
+}
+
+#tah-stats .tah-stats-nav {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+#tah-stats .tah-stats-nav strong {
+  min-width: 170px;
+  color: #333;
+  font-size: 13px;
+  font-weight: 600;
+  text-align: center;
+}
+
+#tah-stats .tah-stats-arrow,
+#tah-stats .tah-stats-btn,
+#tah-stats .tah-stats-close {
+  height: 28px;
+  min-width: 28px;
+  padding: 0 7px;
+  border: 1px solid #d6dbe3;
+  border-radius: 3px;
+  background: #fff;
+  color: #666;
+  font-size: 13px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+#tah-stats .tah-stats-arrow:hover,
+#tah-stats .tah-stats-btn:hover,
+#tah-stats .tah-stats-close:hover {
+  border-color: #1e4b8c;
+  color: #1e4b8c;
+}
+
+#tah-stats .tah-stats-close {
+  border-color: transparent;
+  font-size: 15px;
+}
+
+#tah-stats .tah-stats-progress {
+  flex-basis: 100%;
+  min-height: 0;
+  color: #9aa3ad;
+  font-size: 11px;
+}
+
+#tah-stats .tah-stats-progress:empty {
+  display: none;
+}
+
+#tah-stats .tah-stats-body {
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 16px 22px 44px;
+}
+
+/* ---------- key figures ---------- */
+
+#tah-stats .tah-kpis {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+#tah-stats .tah-kpi {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  padding: 11px 14px;
+  background: #fff;
+  border: 1px solid #e7eaec;
+  border-radius: 3px;
+}
+
+#tah-stats .tah-kpi strong {
+  color: #262626;
+  font-size: 21px;
+  font-weight: 600;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
+#tah-stats .tah-kpi-label {
+  color: #8a939d;
+  font-size: 10.5px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+#tah-stats .tah-kpi small {
+  color: #9aa3ad;
+  font-size: 11px;
+}
+
+#tah-stats .tah-kpi-main {
+  border-left: 4px solid #1e4b8c;
+}
+
+#tah-stats .tah-kpi-main strong {
+  color: #1e4b8c;
+  font-size: 25px;
+}
+
+#tah-stats .tah-kpis-small {
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  margin-bottom: 0;
+}
+
+#tah-stats .tah-kpis-small .tah-kpi {
+  padding: 9px 12px;
+  background: #fbfcfd;
+}
+
+#tah-stats .tah-kpis-small .tah-kpi strong {
+  font-size: 17px;
+}
+
+/* ---------- forecast ---------- */
+
+#tah-stats .tah-forecast {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 2px 14px;
+  margin: 14px 0 0;
+  padding: 13px 16px;
+  background: #fff;
+  border: 1px solid #d7e6d7;
+  border-left: 4px solid #4caf50;
+  border-radius: 3px;
+}
+
+#tah-stats .tah-forecast-label {
+  flex-basis: 100%;
+  color: #8a939d;
+  font-size: 10.5px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+#tah-stats .tah-forecast strong {
+  color: #2e7d32;
+  font-size: 24px;
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+#tah-stats .tah-forecast-range {
+  color: #667;
+  font-size: 12px;
+}
+
+#tah-stats .tah-forecast-meta {
+  display: flex;
+  flex-basis: 100%;
+  flex-wrap: wrap;
+  gap: 2px 18px;
+  color: #7b8590;
+  font-size: 11.5px;
+}
+
+#tah-stats .tah-forecast-past,
+#tah-stats .tah-forecast-future {
+  border-color: #e7eaec;
+  border-left-color: #90a4ae;
+}
+
+#tah-stats .tah-forecast-past strong,
+#tah-stats .tah-forecast-future strong {
+  color: #37474f;
+}
+
+/* ---------- charts ---------- */
+
+#tah-stats .tah-charts {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 14px;
+}
+
+@media (max-width: 1100px) {
+  #tah-stats .tah-charts {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  /* Three small charts over two columns leave a hole; the last one fills it. */
+  #tah-stats .tah-chart:last-child:nth-child(odd) {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (max-width: 760px) {
+  #tah-stats .tah-charts {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  #tah-stats .tah-chart:last-child:nth-child(odd) {
+    grid-column: auto;
+  }
+}
+
+#tah-stats .tah-chart {
+  margin: 0;
+  padding: 11px 14px 13px;
+  background: #fff;
+  border: 1px solid #e7eaec;
+  border-radius: 3px;
+}
+
+#tah-stats .tah-chart-wide {
+  grid-column: 1 / -1;
+}
+
+#tah-stats .tah-chart figcaption {
+  margin: 0 0 8px;
+  color: #8a939d;
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+#tah-stats .tah-canvas {
+  position: relative;
+  height: 230px;
+}
+
+#tah-stats .tah-chart-wide .tah-canvas {
+  height: 250px;
+}
+
+/* ---------- lists and states ---------- */
+
+#tah-stats .tah-insights {
+  margin-top: 14px;
+  padding: 12px 16px;
+  background: #fff;
+  border: 1px solid #e7eaec;
+  border-radius: 3px;
+}
+
+#tah-stats .tah-insights h3 {
+  margin: 0 0 6px;
+  padding: 0;
+  border: none;
+  color: #555;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+#tah-stats .tah-insights ul {
+  margin: 0;
+  padding-left: 17px;
+  color: #555;
+  font-size: 12px;
+}
+
+#tah-stats .tah-insights li {
+  margin: 2px 0;
+}
+
+#tah-stats .tah-stats-note {
+  margin: 14px 0 0;
+  color: #9aa3ad;
+  font-size: 11px;
+}
+
+#tah-stats .tah-stats-empty {
+  margin: 18px 0;
+  padding: 16px;
+  background: #fff;
+  border: 1px dashed #c9cfd7;
+  border-radius: 3px;
+  color: #666;
+  font-size: 12px;
+}
+
+#tah-stats .tah-stats-error {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 6px 12px;
+  margin: 18px 0;
+  padding: 14px 16px;
+  background: #fff;
+  border: 1px solid #e6b3ad;
+  border-left: 4px solid #b3261e;
+  border-radius: 3px;
+  color: #8c1d18;
+  font-size: 12px;
+}
+
+#tah-stats .tah-stats-error strong {
+  flex-basis: 100%;
+  font-size: 13px;
+}
+
+#tah-stats .tah-stats-error .tah-stats-btn {
+  color: #b3261e;
+  border-color: #e6b3ad;
+}
+
+/* The sidebar entry: the site marks the current page with `li.active`, this is
+   the same look for the stats view while it is open. */
+nav[role='navigation'] ul.nav > li.tah-nav-active > a#tah-nav-stats {
+  background: #293846;
+  color: #fff;
+}

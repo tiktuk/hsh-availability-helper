@@ -10,11 +10,15 @@ this file is for working on it.
 - `extension/manifest.json` – MV3, content script on `https://hsh.gomus.de/guide/*`, `storage` permission only.
 - `extension/content/content.js` – everything that runs on the page: grid model, block view, writes, panel UI, month invoice.
 - `extension/content/ical.js` – the iCal reader for the calendar feed (see Calendar feed). Loaded before `content.js`, same isolated world, exposes one global `TAH_ICAL`.
+- `extension/content/stats.js` – the statistics tab (see Statistics). Loaded after `content.js`, exposes one global `TAH_STATS` and takes its page helpers from `window.TAH_PAGE`.
+- `extension/content/stats.css` – the stats view and the sidebar entry.
+- `extension/vendor/chart.umd.min.js` – Chart.js 4.4.7 UMD, vendored unchanged (see Statistics).
 - `extension/popup/` – settings (block length, preset times, working-hours window); links to the settings page.
 - `extension/options/` – invoice letterhead (sender, recipient, Steuernummer, bank, texts, signature, number range) and the iCal feed address.
 - `extension/background.js` – service worker; opens the invoice tab (`chrome.tabs.create`) and fetches the calendar feed (see Calendar feed).
 - `extension/invoice/` – the printable invoice page (`chrome-extension://` URL): rows from `chrome.storage.local`, letter from the settings.
 - `tools/dev-inject.js` – loads the content script into an already-open page (see Verification).
+- `tools/stats-harness.html` – opens the stats view with mock bookings, without login or extension (see Statistics).
 - `tools/make_icons.py` – regenerates `extension/icons/*.png`.
 
 No build step, no dependencies, no test runner. Plain JS, loaded unpacked.
@@ -43,6 +47,11 @@ Note it cannot run twice in one page (top-level `const` redeclaration), so reloa
 `tools/dev-inject.js` also stubs `chrome.storage.local` and `chrome.runtime.sendMessage`, capturing
 writes on `window.__tahLocal` / `window.__tahSync`, so the whole invoice flow can be exercised on
 the live calendar page without installing anything (it only issues GETs).
+
+The statistics view needs no login at all: `tools/stats-harness.html` (served from the repo root,
+`python3 -m http.server 8817`) runs the real `stats.js` and `stats.css` against mock bookings and a
+stubbed `chrome.storage`. Use it for layout, chart and forecast changes; only the data source
+(`fetchMonthBookings` / `enrichBooking`) needs the live site.
 
 Loading the unpacked extension into a Playwright-launched Chrome does not work – Chrome refuses
 `--load-extension` under automation. Test the popup, `options/options.html` and `invoice/invoice.html`
@@ -207,6 +216,67 @@ Data comes from the bookings list, not the calendar grid:
   the panel, instead of failing after the click. The button is also disabled
   while a preview loads, so a click cannot race the preview.
 
+## Statistics
+
+A seventh sidebar entry (**Statistik**, `Alt+S`) opens `#tah-stats`: a fixed
+view over the content area, not a separate page. The site's sidebar and top bar
+stay visible and clickable, which is what makes it read as a tab of the booking
+system. `position()` measures the sidebar's right edge and the top bar's height
+on every open/resize; a `MutationObserver` on `body.class` follows the rail's
+collapse toggle. The panel is inserted into `document.body`, so no page layout
+rule can clip it.
+
+`stats.js` is an IIFE that returns `TAH_STATS = { installNav, open, close,
+toggle }`. `installShortcuts()` calls `installNav()` **before** `annotateNav()`,
+so the tab takes part in the Alt+1…9 order (it lands before the help link).
+`content.js` exposes its helpers as `window.TAH_PAGE` — do not reach into its
+top-level names from stats.js: both files share one isolated world, so a
+top-level `const` with the same name is a redeclaration error that kills the
+whole script.
+
+Data is the same two sources the invoice uses, only wider:
+
+- `fetchMonthBookings(month)` per month in the range (12 requests for a year),
+  then `enrichBooking(row)` per booking for the price. A year is a few hundred
+  detail requests on the first look — that is why the view loads month by month,
+  shows progress, and caches.
+- `chrome.storage.local.statsMonths` – list rows per month, 2 h TTL.
+  `chrome.storage.local.bookingDetails` – price/fee/offer/category/participants
+  per booking id, 7 days TTL, refetched when the row's cancellation status
+  changed, pruned after 400 days. **↻** forces both. Switching periods after the
+  first load issues no requests.
+- Only rows with `price > 0` count, exactly like the invoice: a group
+  cancellation brings its Ausfallhonorar, a guide cancellation or reassignment
+  has no amount and is reported in the footer as skipped.
+
+`enrichBooking` also fills `offer` (`Angebot`), `category`
+(`Angebotskategorie`) and `participants` (`Teilnehmende`) from the detail page's
+`<dt>/<dd>` pairs. `row.tour` is left alone — it is the list's group label and
+the invoice prints it. `fetchMonthBookings` throws "Nicht angemeldet" when the
+response contains a password field, because a logged-out session redirects to the
+login form and still answers `200`.
+
+The forecast (year view only) cuts the year into weeks. Completed whole weeks
+inside the year give the median weekly income; each remaining week is estimated
+at `max(booked in that week, median × remaining fraction)`, the band uses the
+same weeks' p25/p75, and fewer than three completed weeks fall back to the year's
+daily average. The cumulative chart's current-month point is the actual income;
+the dashed line starts there. A past year shows only "abgeschlossen", a future
+year only "geplant" — no forecast is invented for either.
+
+Chart.js is **vendored** in `vendor/` and loaded as a content script on every
+guide page (~206 KB, ~10 ms). That is the one deliberate exception to
+"dependency-free": the user asked for a real charting library, and MV3 may not
+load one from a CDN. Do not switch to a remote `<script>`, and do not move the
+library into the page's main world.
+
+`tools/stats-harness.html` renders the view from mock bookings without a login:
+serve the repo root (`python3 -m http.server 8817`) and open
+`/tools/stats-harness.html`. It stubs `chrome.storage` and `TAH_PAGE`, so it
+exercises the real `stats.js` and `stats.css`; keep the mock uneven (cancelled
+rows, rows without an amount, varying prices) or the forecast band collapses to a
+line and the skipped-count note disappears.
+
 ## Shortcuts
 
 `installShortcuts()` runs on every guide page. `Alt+1…9` map to the site's own
@@ -215,6 +285,8 @@ single source of truth; the key is also written into each link's `title` so it
 is discoverable. `Alt+R` is two-step: closed panel → open + preview, open panel
 with a ready preview → the same click as the button (so it bills the month).
 It returns `false` (without `preventDefault`) on pages that have no panel.
+`Alt+S` toggles the statistics view through `TAH_STATS.toggle()`; it also returns
+`false` when the view is not there, so the key is never swallowed needlessly.
 
 `Alt+P` / `Alt+N` click the month arrows, which are plain links to
 `?start_at=<month>`. Their labels are bootstrap tooltips (`data-original-title`),
@@ -233,9 +305,9 @@ how the shortcuts are tested through Playwright.
 ## Sidebar labels
 
 The sidebar is an icon rail (`body.mini-navbar`) and the site hides `.nav-label`
-with it, which leaves six icons nobody can tell apart. The extension prints the
-labels as 10 px captions under the icons. The rules are gated on
-`body.tah-nav-labels`, set by `applyNavLabels()` from
+with it, which leaves six icons nobody can tell apart (seven with the stats tab).
+The extension prints the labels as 10 px captions under the icons. The rules are
+gated on `body.tah-nav-labels`, set by `applyNavLabels()` from
 `chrome.storage.sync.navLabels` (popup checkbox, default on) — without the class
 the rail looks exactly like the site's.
 
@@ -262,6 +334,10 @@ under an icon is the flex gap; it is a progressive enhancement (Chrome 133+).
 
 - UI strings are German (the site is German), code and comments are English.
 - Match the site's look: Bootstrap 3-ish, `#1e4b8c` accent, 12 px panel text.
-- Keep the extension dependency-free; no frameworks, no bundler.
+- Keep the extension dependency-free; no frameworks, no bundler. The single
+  exception is the vendored Chart.js in `vendor/` (see Statistics) — it is a
+  checked-in file, not a dependency the build resolves.
+- German numbers: `toLocaleString('de-DE')`. A plain `${Math.round(x * 10) / 10}`
+  prints `4.5`, which reads wrong next to `4,5 h`.
 - Never break the site's native behaviour: a plain click must stay a single-slot toggle, and the
   extension must not swallow clicks it does not handle.

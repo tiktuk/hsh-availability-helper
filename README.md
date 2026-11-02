@@ -5,7 +5,9 @@ it replaces 18 five-minute cells per tour with one 90-minute block, so a whole
 day is a handful of clicks instead of hundreds. In the week view it can overlay
 your own calendar — paste the **iCal** address and appointments appear in the
 grid, so you never offer a tour you are already busy for. On the calendar page it
-turns the month's shifts into a printable invoice, letterhead and all.
+turns the month's shifts into a printable invoice, letterhead and all. And the
+**Statistik** tab in the sidebar charts your income per week, month and year,
+with a forecast for the year's end.
 
 ![The block view: one row per tour, one cell per day, with per-day check and cross buttons](docs/screenshot.png)
 
@@ -223,15 +225,56 @@ with an optional prefix (e.g. `RE-2026-`). Each month keeps the number it was
 first given, so opening a month again does not burn a number, and the number can
 be edited directly on the invoice.
 
+## Statistik
+
+The sidebar has a seventh entry, **Statistik** (`Alt+S`). It opens over the page
+and shows what the bookings add up to — no extra permissions, it reads the same
+booking list and Abrechnung amounts the invoice uses.
+
+At the top you switch between **Woche**, **Monat** and **Jahr**; the arrows move
+one period back or forward. Below that:
+
+- **Einnahmen, Einsätze, Ø pro Einsatz, Arbeitszeit** — the headline numbers,
+  with the Ausfallhonorar of group cancellations called out separately.
+- **Teilnehmende, Absagen, Einsätze pro Woche, Absagequote** — the smaller row.
+- **Prognose zum 31.12.** (year view) — what the year will most likely end at,
+  with a range and how much of it is already booked.
+- **Einnahmen je Tag / je Monat** — bars split into Honorar and
+  Ausfallhonorar.
+- **Prognose bis Jahresende** — cumulative income so far, the projection, and
+  the range it sits in.
+- **Einsätze nach Wochentag**, **Angebote nach Einsätzen**, **Startzeiten** —
+  where the work actually is.
+- **Auffälligkeiten** — the strongest weekday, the busiest start time, the best
+  month, the most frequent offer, the average group size.
+
+Only bookings with an amount count: a cancellation by the group brings its
+Ausfallhonorar and stays in, while a cancellation by the guide or a booking you
+were moved off has no amount and is left out (the footer says how many).
+
+**How the forecast works.** The year is cut into weeks. Every week that is
+already over contributes its income; the median of those weeks is what a typical
+week is assumed to bring. Each remaining week is estimated at that median — or at
+what is already booked for it, if that is more, since a week with a full slate
+will not shrink. The range comes from the same weeks' lower and upper quartile.
+With fewer than three completed weeks it falls back to the year's daily average.
+It is a run rate with a memory, not a promise.
+
+The first look at a year loads every booking of the year (the price is only on
+the booking's detail page), which takes a few seconds; everything is cached
+afterwards, so switching between periods is instant. **↻** reloads from the
+server. `Esc` or **✕** closes the view.
+
 ## Tastenkürzel
 
 On every guide page, hold **Alt**:
 
 | Keys | Action |
 | --- | --- |
-| `Alt+1` … `Alt+6` | jump to the sidebar entries in their order: Dashboard, Buchungsliste, Kalender, Verfügbarkeiten, Termingruppen, Helpdesk |
+| `Alt+1` … `Alt+7` | jump to the sidebar entries in their order: Dashboard, Buchungsliste, Kalender, Verfügbarkeiten, Termingruppen, Statistik, Helpdesk |
 | `Alt+R` | show the invoice preview for the month on screen — press it again to create the invoice |
 | `Alt+P` / `Alt+N` | previous / next month on the calendar page |
+| `Alt+S` | open the statistics, press it again to close them |
 
 The sidebar entries show their key in the tooltip. `Alt+R` does nothing on
 pages without an invoice panel, so it never swallows the key there.
@@ -267,6 +310,15 @@ browser_run_code_unsafe({ filename: "tools/dev-inject.js" })
 ```
 
 `tools/make_icons.py` regenerates the PNG icons.
+
+The statistics view needs no login to look at: serve the repo root with
+`python3 -m http.server 8817` and open
+<http://127.0.0.1:8817/tools/stats-harness.html>. It runs the real `stats.js`
+against made-up bookings, with `chrome.storage` stubbed.
+
+The charts use [Chart.js](https://www.chartjs.org) 4.4.7, vendored in
+`extension/vendor/` (MIT licence) — an extension may not load a library from a
+CDN, and there is no build step to bundle one.
 
 ## Licence
 

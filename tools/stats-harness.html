@@ -1,0 +1,198 @@
+<!--
+  Statistics harness: opens the stats view with made-up bookings, no login and
+  no extension. Serve the repo root (python3 -m http.server 8817) and open
+  http://127.0.0.1:8817/tools/stats-harness.html — the paths below reach into
+  extension/, and chrome.storage is stubbed so the view can cache and reload.
+
+  The mock data is deliberately uneven (cancellations, bookings without an
+  amount, varying prices) so the forecast band and the "ohne Honorar" note have
+  something to show. Change `seed` to roll different bookings.
+
+  Note: the harness runs in the page's main world, where hsh.gomus.de loads its
+  own Chart.js — `Chart.getChart()` may therefore not see the charts this page
+  created, even though they are drawn. The extension itself runs in an isolated
+  world and is not affected.
+-->
+<!DOCTYPE html>
+<html lang="de">
+  <head>
+    <meta charset="utf-8" />
+    <title>Statistik-Harness</title>
+    <link rel="stylesheet" href="../extension/content/stats.css" />
+    <style>
+      /* Roughly the site's frame: fixed top bar, icon rail, content area. */
+      body {
+        margin: 0;
+        font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+        font-size: 13px;
+        background: #f3f3f4;
+      }
+      .navbar-static-top {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 50px;
+        background: #2f4050;
+        color: #fff;
+        z-index: 1000;
+        display: flex;
+        align-items: center;
+        padding: 0 15px;
+      }
+      nav[role='navigation'].navbar-static-side {
+        position: fixed;
+        top: 50px;
+        bottom: 0;
+        left: 0;
+        width: 92px;
+        background: #2f4050;
+        color: #a7b1c2;
+      }
+      nav ul.nav {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+      }
+      nav ul.nav > li > a {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 4px;
+        padding: 9px 2px;
+        color: #a7b1c2;
+        text-decoration: none;
+        font-size: 10px;
+      }
+      nav ul.nav > li > a > i {
+        font-size: 18px;
+        font-style: normal;
+      }
+      nav ul.nav > li.active > a {
+        background: #293846;
+        color: #fff;
+      }
+      #page-wrapper {
+        margin-left: 92px;
+        padding: 66px 15px 30px;
+      }
+    </style>
+  </head>
+  <body class="mini-navbar tah-nav-labels">
+    <div class="navbar-static-top">HSH</div>
+    <nav role="navigation" class="navbar-static-side">
+      <ul class="nav">
+        <li class="menu"><a href="/guide/bookings"><i>▤</i><span class="nav-label">Buchungsliste</span></a></li>
+        <li class="menu active"><a href="/guide/calendar"><i>▦</i><span class="nav-label">Kalender</span></a></li>
+        <li class="menu"><a href="/guide/availables"><i>◷</i><span class="nav-label">Verfügbarkeiten</span></a></li>
+        <li class="menu"><a href="/help"><i>?</i><span class="nav-label">Helpdesk</span></a></li>
+      </ul>
+    </nav>
+    <div id="page-wrapper">
+      <h1>Kalender</h1>
+      <p>Der Seiteninhalt, der beim Öffnen der Statistik verdeckt wird.</p>
+    </div>
+
+    <script src="../extension/vendor/chart.umd.min.js"></script>
+    <script>
+      // ---- chrome.storage stub -------------------------------------------------
+      window.__local = {};
+      window.chrome = {
+        storage: {
+          local: {
+            get: async (defaults) => ({ ...(defaults || {}), ...window.__local }),
+            set: async (values) => {
+              window.__local = { ...window.__local, ...values };
+            },
+          },
+          onChanged: { addListener: () => {} },
+        },
+      };
+
+      // ---- page helpers, the same contract content.js exposes ----------------
+      function el(tag, attrs = {}, children = []) {
+        const node = document.createElement(tag);
+        for (const [k, v] of Object.entries(attrs)) {
+          if (k === 'class') node.className = v;
+          else if (k === 'text') node.textContent = v;
+          else node.setAttribute(k, v);
+        }
+        for (const child of [].concat(children)) node.append(child);
+        return node;
+      }
+      const MONTH_NAMES = ['Januar', 'Februar', 'März', 'April', 'Mai', 'Juni', 'Juli', 'August', 'September', 'Oktober', 'November', 'Dezember'];
+      const pad = (n) => String(n).padStart(2, '0');
+      const monthKey = (d) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}`;
+      const monthLabel = (m) => `${MONTH_NAMES[Number(m.slice(5, 7)) - 1]} ${m.slice(0, 4)}`;
+
+      // ---- mock bookings -------------------------------------------------------
+      let seed = 42;
+      const rnd = () => ((seed = (seed * 1103515245 + 12345) % 2147483648) / 2147483648);
+      const TIMES = ['09:55', '11:15', '12:55', '14:00', '16:35'];
+      const CATEGORIES = [
+        ['Öffentlicher Rundgang | Einzelbesucher', 'Öffentlicher Rundgang (Englisch)', 0],
+        ['Das Stasi-Gefängnis (Gruppenführung)', 'Das Stasi-Gefängnis (Gruppenführung)', 22],
+        ['Das Stasi-Gefängnis (Gruppenführung)', 'Das Stasi-Gefängnis (Gruppenführung)', 18],
+        ['Gefängnisgeschichte kompakt | Gruppen', 'Gefängnisgeschichte kompakt', 26],
+        ['Archivführung | Gruppen', 'Archivführung', 12],
+      ];
+      const MOCK = [];
+      let id = 50000;
+      for (let month = 0; month < 12; month += 1) {
+        const days = new Date(2026, month + 1, 0).getDate();
+        for (let day = 1; day <= days; day += 1) {
+          const date = new Date(2026, month, day);
+          const weekday = date.getDay();
+          if (weekday === 0 || weekday === 6) continue;
+          // November 2026 is "today's" month, so it only has bookings up to the 12th.
+          if (month === 10 && day > 12) continue;
+          const count = rnd() < 0.18 ? 0 : rnd() < 0.5 ? 1 : 2;
+          for (let i = 0; i < count; i += 1) {
+            const cat = CATEGORIES[Math.floor(rnd() * CATEGORIES.length)];
+            const cancelled = rnd() < 0.08;
+            const billable = !cancelled || rnd() < 0.6;
+            const PRICES = [97.5, 97.5, 105, 120, 75, 140];
+            const price = billable ? (cancelled ? 49 : PRICES[Math.floor(rnd() * PRICES.length)]) : 0;
+            id += 1;
+            MOCK.push({
+              id: String(id),
+              date: `${date.getFullYear()}-${pad(month + 1)}-${pad(day)}`,
+              time: TIMES[Math.floor(rnd() * TIMES.length)],
+              duration: 105,
+              cancelled,
+              tour: 'Gruppe 1',
+              participants: cat[2],
+              price,
+              fee: cancelled ? 'Ausfallhonorar' : 'Honorar',
+              offer: cat[1],
+              category: cat[0],
+            });
+          }
+        }
+      }
+      window.__mock = MOCK;
+
+      window.TAH_PAGE = {
+        el,
+        pool: async (items, limit, worker) => {
+          const queue = items.slice();
+          await Promise.all(
+            Array.from({ length: Math.min(limit, queue.length) }, async () => {
+              while (queue.length) await worker(queue.shift());
+            })
+          );
+        },
+        MONTH_NAMES,
+        monthKey,
+        monthLabel,
+        formatMoney: (v) => `${v.toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} €`,
+        fetchMonthBookings: async (month) => MOCK.filter((row) => row.date.startsWith(month)).map((row) => ({ ...row })),
+        enrichBooking: async (row) => {
+          const source = MOCK.find((entry) => entry.id === row.id);
+          return { ...row, ...source };
+        },
+      };
+    </script>
+    <script src="../extension/content/stats.js"></script>
+  </body>
+</html>

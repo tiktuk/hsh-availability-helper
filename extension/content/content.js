@@ -928,6 +928,8 @@ function parseBookingRow(tr, group, month) {
   const id = (tr.id.match(/\d+/) || [])[0];
   if (!id || monthIndex < 0) return null;
   const duration = /Dauer:\s*(\d+)\s*Minuten/.exec(text);
+  // Only group tours carry a head count; public tours leave it out.
+  const participants = /angemeldete Teilnehmende:\s*(\d+)/.exec(text);
   const year = group ? group.year : Number(month.slice(0, 4));
   // The status badge sits in the second cell, next to the group label. The row's
   // own `canceled` class cannot be used: every row carries it, booked ones with
@@ -940,6 +942,7 @@ function parseBookingRow(tr, group, month) {
     date: `${year}-${String(monthIndex + 1).padStart(2, '0')}-${String(Number(when[1])).padStart(2, '0')}`,
     time: `${when[3].padStart(2, '0')}:${when[4]}`,
     duration: duration ? Number(duration[1]) : null,
+    participants: participants ? Number(participants[1]) : 0,
     customer: '',
     price: 0,
   };
@@ -963,6 +966,9 @@ async function fetchMonthBookings(month) {
   const res = await fetch(`${BOOKINGS_URL}?${query}`, { credentials: 'include' });
   if (!res.ok) throw new Error(`Buchungsliste: HTTP ${res.status}`);
   const doc = new DOMParser().parseFromString(await res.text(), 'text/html');
+  // A logged-out session redirects to the login form, which answers 200. Say so
+  // instead of reporting an empty month.
+  if (doc.querySelector('input[type=password]')) throw new Error('Nicht angemeldet – bitte zuerst auf hsh.gomus.de einloggen.');
 
   const rows = [];
   let group = null;
@@ -989,6 +995,14 @@ async function enrichBooking(row) {
   const abrechnung = box('Abrechnung');
   const hinweise = box('Hinweise');
 
+  // The detail boxes are definition lists; the tour itself ("Angebot") is only
+  // named here — the list row shows the group label instead.
+  const term = (name) => {
+    const dt = [...doc.querySelectorAll('dt')].find((node) => node.textContent.trim().replace(/:$/, '') === name);
+    const dd = dt && dt.nextElementSibling;
+    return dd && dd.tagName === 'DD' ? dd.textContent.replace(/\s+/g, ' ').trim() : '';
+  };
+
   const customer = (kunde?.querySelector('dd')?.textContent || '').replace(/\s+/g, ' ').trim();
   // The comment block holds more than the group name ("Alternative language: …"),
   // so keep only the Gruppenbezeichnung line.
@@ -999,6 +1013,9 @@ async function enrichBooking(row) {
   // "Honorar" for a tour that happened, "Ausfallhonorar" for a group cancellation.
   row.fee = (abrechnung?.querySelector('td:not(.price)')?.textContent || '').trim();
   row.customer = customer || comment || row.tour || `Buchung ${row.id}`;
+  row.offer = term('Angebot') || row.tour;
+  row.category = term('Angebotskategorie') || row.offer;
+  row.participants = Number(term('Teilnehmende')) || row.participants || 0;
   return row;
 }
 
@@ -1277,6 +1294,11 @@ function onShortcutKey(event) {
     return;
   }
 
+  if (event.code === 'KeyS') {
+    if (window.TAH_STATS?.toggle()) event.preventDefault();
+    return;
+  }
+
   if (event.code === 'KeyP' || event.code === 'KeyN') {
     const { previous, next } = calendarNavLinks();
     const link = event.code === 'KeyP' ? previous : next;
@@ -1295,9 +1317,27 @@ function onShortcutKey(event) {
 }
 
 function installShortcuts() {
+  // The stats tab goes into the sidebar before the keys are handed out, so it
+  // takes part in the Alt+1…9 order like every other entry.
+  window.TAH_STATS?.installNav();
   annotateNav();
   document.addEventListener('keydown', onShortcutKey, true);
 }
+
+/* ---------- api for stats.js ---------- */
+
+// stats.js is a separate content script in the same isolated world. It gets the
+// page helpers through this object instead of reaching into this file's globals.
+window.TAH_PAGE = {
+  el,
+  pool,
+  MONTH_NAMES,
+  monthKey,
+  monthLabel,
+  formatMoney,
+  fetchMonthBookings,
+  enrichBooking,
+};
 
 /* ---------- boot ---------- */
 

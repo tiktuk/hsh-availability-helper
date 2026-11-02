@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
   "name": "HSH-Helper",
-  "version": "1.0.0",
-  "description": "Fill availability in whole tour blocks, label the icon sidebar, overlay your own iCal calendar, and print the monthly invoice.",
+  "version": "1.1.0",
+  "description": "Fill availability in whole tour blocks, label the icon sidebar, overlay your own iCal calendar, print the monthly invoice, and chart your income.",
   "minimum_chrome_version": "116",
   "icons": {
     "16": "icons/icon-16.png",
@@ -30,8 +30,8 @@
   "content_scripts": [
     {
       "matches": ["https://hsh.gomus.de/guide/*"],
-      "js": ["content/ical.js", "content/content.js"],
-      "css": ["content/content.css"],
+      "js": ["content/ical.js", "vendor/chart.umd.min.js", "content/content.js", "content/stats.js"],
+      "css": ["content/content.css", "content/stats.css"],
       "run_at": "document_idle"
     }
   ]

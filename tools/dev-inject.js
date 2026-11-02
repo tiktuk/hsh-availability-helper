@@ -14,7 +14,8 @@ async (page) => {
         },
       },
       local: {
-        get: async () => ({ ...(window.__tahLocal || {}) }),
+        // Same contract as chrome.storage: missing keys come back as the default.
+        get: async (defaults) => ({ ...(defaults || {}), ...(window.__tahLocal || {}) }),
         set: async (values) => {
           window.__tahLocal = { ...(window.__tahLocal || {}), ...values };
         },
@@ -31,8 +32,11 @@ async (page) => {
     };
   });
   await page.addStyleTag({ path: 'extension/content/content.css' });
+  await page.addStyleTag({ path: 'extension/content/stats.css' });
   await page.addScriptTag({ path: 'extension/content/ical.js' });
+  await page.addScriptTag({ path: 'extension/vendor/chart.umd.min.js' });
   await page.addScriptTag({ path: 'extension/content/content.js' });
+  await page.addScriptTag({ path: 'extension/content/stats.js' });
   await page.waitForTimeout(500);
   return page.evaluate(() => {
     const panel = document.querySelector('#tah-panel');
@@ -48,6 +52,8 @@ async (page) => {
       events: [...document.querySelectorAll('.tah-day-head')].map((th) => th.title).filter(Boolean),
       conflicts: document.querySelectorAll('.tah-block-conflict').length,
       calendarBar: document.querySelector('.tah-cal-bar')?.textContent || null,
+      statsNav: document.querySelector('#tah-nav-stats')?.title || null,
+      statsApi: typeof window.TAH_STATS,
     };
   });
 }
